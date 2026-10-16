@@ -1,0 +1,324 @@
+const Complaint = require('../models/Complaint');
+const Department = require('../models/Department');
+const User = require('../models/User');
+const { env } = require('../config/env');
+const { STATUS, CATEGORY_DEPARTMENT, ROLES } = require('../utils/constants');
+const { canTransition, canSubmitResolution } = require('../utils/statusMachine');
+const { badRequest, conflict, forbidden } = require('../utils/errors');
+const { generateComplaintId, generateConfirmationToken, hashToken } = require('../utils/tokens');
+const { logEvent } = require('./auditService');
+const { notifyUser, notifyDepartment, notifySeniorOfficers } = require('./notificationService');
+const { extractMetadata, evaluateEvidence } = require('./evidenceService');
+const { compareImages } = require('./ollamaService');
+
+const STATUS_LABEL = {
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under Review',
+  ASSIGNED: 'Assigned',
+  IN_PROGRESS: 'In Progress',
+  AWAITING_CITIZEN_CONFIRMATION: 'Awaiting Citizen Confirmation',
+  RESOLVED_CITIZEN_CONFIRMED: 'Resolved — Citizen Confirmed',
+  REOPENED: 'Reopened',
+  CLOSED_UNCONFIRMED: 'Closed — Unconfirmed',
+  ESCALATED: 'Escalated',
+};
+
+const lastAttempt = (c) => (c.resolutionAttempts.length ? c.resolutionAttempts[c.resolutionAttempts.length - 1] : null);
+
+/* ------------------------------------------------------------------ create */
+
+async function createComplaint({ data, files, user }) {
+  const isAnonymous = !!data.isAnonymous || !user;
+  let token = null;
+  const deptCode = CATEGORY_DEPARTMENT[data.category];
+  const dept = deptCode ? await Department.findOne({ code: deptCode, isActive: true }) : null;
+
+  const doc = {
+    complaintId: generateComplaintId(),
+    title: data.title,
+    description: data.description,
+    category: data.category,
+    severity: data.severity || 'MEDIUM',
+    landmark: data.landmark || undefined,
+    location: { type: 'Point', coordinates: [data.lng, data.lat] },
+    isAnonymous,
+    reporter: user ? user._id : undefined,
+    department: dept ? dept._id : undefined,
+    media: files.map((f) => f.media),
+  };
+  if (isAnonymous) {
+    token = generateConfirmationToken();
+    doc.anonymousTokenHash = hashToken(token);
+  }
+
+  let complaint;
+  for (let i = 0; i < 3; i += 1) {
+    try {
+      complaint = await Complaint.create(doc);
+      break;
+    } catch (e) {
+      if (e.code === 11000 && i < 2) doc.complaintId = generateComplaintId();
+      else throw e;
+    }
+  }
+
+  await logEvent({
+    complaint,
+    actor: !isAnonymous ? user : null,
+    actorType: isAnonymous ? 'ANONYMOUS' : 'CITIZEN',
+    action: 'COMPLAINT_SUBMITTED',
+    toStatus: STATUS.SUBMITTED,
+    message: 'Complaint submitted',
+    isPublic: true,
+  });
+  complaint.department = dept || undefined;
+  await notifyDepartment(complaint, {
+    type: 'NEW_COMPLAINT',
+    title: 'New pollution report',
+    message: `${complaint.complaintId}: ${complaint.title}`,
+  });
+  return { complaint, token };
+}
+
+/* ------------------------------------------------------ authority actions */
+
+async function changeStatus(complaint, to, user, note) {
+  const from = complaint.status;
+  if (to === STATUS.RESOLVED_CITIZEN_CONFIRMED) throw forbidden('Only the citizen can confirm a resolution.');
+  if (to === STATUS.AWAITING_CITIZEN_CONFIRMATION) throw badRequest('Upload after-resolution proof to request citizen confirmation.');
+  if (!canTransition(from, to, 'authority')) throw badRequest(`Cannot move a complaint from ${STATUS_LABEL[from]} to ${STATUS_LABEL[to]}.`);
+  complaint.status = to;
+  if (to === STATUS.ESCALATED) {
+    complaint.needsSeniorReview = true;
+    complaint.escalationReason = note || complaint.escalationReason;
+  }
+  if (note) complaint.notes.push({ author: user._id, authorName: user.name, type: 'ACTION', text: note, isPublic: false });
+  await complaint.save();
+  await logEvent({
+    complaint, actor: user, actorType: 'AUTHORITY', action: 'STATUS_CHANGED', fromStatus: from, toStatus: to,
+    message: `Status changed to ${STATUS_LABEL[to]}`, isPublic: true,
+  });
+  if (complaint.reporter) {
+    await notifyUser(complaint.reporter, { type: 'STATUS_CHANGED', title: 'Complaint update', message: `${complaint.complaintId} is now "${STATUS_LABEL[to]}".`, complaint });
+  }
+  if (to === STATUS.ESCALATED) {
+    await notifySeniorOfficers(complaint, { type: 'ESCALATED', title: 'Complaint escalated', message: `${complaint.complaintId} was escalated${note ? `: ${note}` : ''}.` });
+  }
+  return complaint;
+}
+
+async function assignComplaint(complaint, { officerId, departmentId }, user) {
+  const from = complaint.status;
+  if (departmentId) {
+    const dept = await Department.findById(departmentId);
+    if (!dept) throw badRequest('Department not found');
+    complaint.department = dept._id;
+  }
+  let officer = null;
+  if (officerId) {
+    officer = await User.findOne({ _id: officerId, isActive: true, role: { $in: [ROLES.OFFICER, ROLES.SENIOR_OFFICER] } });
+    if (!officer) throw badRequest('Officer not found or not an active authority account');
+    complaint.assignedOfficer = officer._id;
+    if (officer.department && !complaint.department) complaint.department = officer.department;
+  }
+  if (!officer && !departmentId) throw badRequest('Provide an officer or a department');
+  if (canTransition(from, STATUS.ASSIGNED, 'authority')) complaint.status = STATUS.ASSIGNED;
+  await complaint.save();
+  await logEvent({
+    complaint, actor: user, actorType: 'AUTHORITY', action: 'ASSIGNED', fromStatus: from, toStatus: complaint.status,
+    message: officer ? `Assigned to ${officer.name}` : 'Department assigned', isPublic: true,
+  });
+  if (officer) await notifyUser(officer._id, { type: 'ASSIGNED', title: 'Complaint assigned to you', message: `${complaint.complaintId}: ${complaint.title}`, complaint });
+  return complaint;
+}
+
+async function addNote(complaint, { text, type, isPublic }, user) {
+  complaint.notes.push({ author: user._id, authorName: user.name, type, text, isPublic });
+  await complaint.save();
+  await logEvent({
+    complaint, actor: user, actorType: 'AUTHORITY', action: type === 'ACTION' ? 'ACTION_RECORDED' : 'NOTE_ADDED',
+    message: isPublic ? text : `Internal ${type === 'ACTION' ? 'action' : 'note'} added`, isPublic,
+  });
+  return complaint;
+}
+
+/* --------------------------------------------------- resolution proof flow */
+
+async function submitResolution({ complaint, user, file, description, actionsTaken }) {
+  if (!canSubmitResolution(complaint.status)) {
+    throw badRequest(`Resolution proof cannot be submitted while the complaint is "${STATUS_LABEL[complaint.status]}".`);
+  }
+  if (complaint.status === STATUS.ESCALATED && ![ROLES.SENIOR_OFFICER, ROLES.ADMIN].includes(user.role)) {
+    throw forbidden('Escalated complaints can only be resolved by a senior officer.');
+  }
+  if (!file) throw badRequest('An after-resolution photograph is required.');
+
+  const metadata = await extractMetadata(file.buffer);
+  const [lng, lat] = complaint.location.coordinates;
+  const result = evaluateEvidence({
+    complaintCreatedAt: complaint.createdAt,
+    complaintLat: lat,
+    complaintLng: lng,
+    metadata,
+    evidenceSha256: file.media.sha256,
+    originalHashes: [
+      ...complaint.media.map((m) => m.sha256),
+      ...complaint.resolutionAttempts.flatMap((a) => [a.evidence && a.evidence.sha256, ...((a.citizenDecision && a.citizenDecision.media) || []).map((m) => m.sha256)]),
+    ].filter(Boolean),
+  });
+
+  if (result.rejected) {
+    await logEvent({
+      complaint, actor: user, actorType: 'AUTHORITY', action: 'EVIDENCE_REJECTED',
+      message: 'Resolution evidence rejected by validation', isPublic: false, meta: { reasons: result.rejectReasons },
+    });
+    const err = badRequest(`Evidence rejected: ${result.rejectReasons.join(' ')}`, result.validation.checks.map((c) => ({ field: c.key, message: `${c.label}: ${c.result} — ${c.detail}` })));
+    err.validation = result.validation;
+    throw err;
+  }
+
+  const from = complaint.status;
+  const deadline = new Date(Date.now() + env.confirmationDays * 24 * 60 * 60 * 1000);
+  complaint.resolutionAttempts.push({
+    attemptNumber: complaint.resolutionAttempts.length + 1,
+    submittedBy: user._id,
+    description,
+    actionsTaken,
+    evidence: file.media,
+    validation: result.validation,
+    confirmationDeadline: deadline,
+  });
+  complaint.status = STATUS.AWAITING_CITIZEN_CONFIRMATION;
+  complaint.confirmationDeadline = deadline;
+  await complaint.save();
+
+  await logEvent({
+    complaint, actor: user, actorType: 'AUTHORITY', action: 'RESOLUTION_SUBMITTED', fromStatus: from, toStatus: complaint.status,
+    message: `Cleanup evidence submitted. Awaiting citizen confirmation until ${deadline.toISOString().slice(0, 10)}.`, isPublic: true,
+    meta: { validation: result.validation.status, flagged: result.flagReasons },
+  });
+  if (complaint.reporter) {
+    await notifyUser(complaint.reporter, {
+      type: 'CONFIRMATION_REQUESTED', title: 'Please confirm the cleanup',
+      message: `${complaint.complaintId}: authorities uploaded cleanup proof. Confirm within ${env.confirmationDays} days.`, complaint,
+    });
+  }
+  if (result.flagReasons.length) {
+    await notifySeniorOfficers(complaint, { type: 'EVIDENCE_FLAGGED', title: 'Evidence flagged for review', message: `${complaint.complaintId}: ${result.flagReasons[0]}` });
+  }
+
+  const attempt = lastAttempt(complaint);
+  if (process.env.OLLAMA_AUTO_COMPARE !== 'false' && complaint.media.some((m) => m.kind === 'image')) {
+    // Fire-and-forget; advisory only and never blocks or fails the submission.
+    runAiComparison(complaint._id, attempt._id).catch(() => {});
+  }
+  return complaint;
+}
+
+async function runAiComparison(complaintMongoId, attemptId, byUser) {
+  const complaint = await Complaint.findById(complaintMongoId);
+  if (!complaint) return null;
+  const attempt = attemptId ? complaint.resolutionAttempts.id(attemptId) : lastAttempt(complaint);
+  if (!attempt || !attempt.evidence) throw badRequest('No resolution attempt with evidence to compare.');
+  const before = complaint.media.find((m) => m.kind === 'image');
+  if (!before) throw badRequest('The complaint has no original photograph to compare against.');
+  const ai = await compareImages(before.url, attempt.evidence.url);
+  attempt.ai = { ...ai, comparedBy: byUser ? byUser._id : undefined };
+  await complaint.save();
+  await logEvent({ complaint, actor: byUser || null, actorType: byUser ? 'AUTHORITY' : 'SYSTEM', action: 'AI_COMPARISON', message: `AI comparison (advisory): ${ai.outcome}`, isPublic: false });
+  return attempt.ai;
+}
+
+/* ---------------------------------------------------------- citizen action */
+
+/**
+ * decision: 'CONFIRMED' | 'REJECTED'; via: 'ACCOUNT' | 'TOKEN'.
+ * The status flip is guarded atomically so a confirmation and the timeout job can never both win.
+ */
+async function citizenDecide({ complaint, decision, via, user, reason, files = [] }) {
+  const now = new Date();
+  if (decision === 'REJECTED') {
+    if (!reason || reason.trim().length < 10) throw badRequest('Please explain what is still wrong (at least 10 characters).');
+    if (!files.some((f) => f.media.kind === 'image')) throw badRequest('Please upload a new photograph showing the current condition.');
+  }
+  const target = decision === 'CONFIRMED' ? STATUS.RESOLVED_CITIZEN_CONFIRMED : STATUS.REOPENED;
+  if (!canTransition(STATUS.AWAITING_CITIZEN_CONFIRMATION, target, 'citizen')) throw badRequest('Invalid decision');
+
+  const locked = await Complaint.findOneAndUpdate(
+    { _id: complaint._id, status: STATUS.AWAITING_CITIZEN_CONFIRMATION, confirmationDeadline: { $gt: now } },
+    { $set: { status: target } },
+    { new: true }
+  );
+  if (!locked) throw conflict('This complaint is no longer waiting for your confirmation (it may have been decided or the deadline has passed).');
+
+  const attempt = lastAttempt(locked);
+  attempt.citizenDecision = { decision, decidedAt: now, via, reason: reason || undefined, media: files.map((f) => f.media) };
+
+  let finalStatus = target;
+  if (decision === 'CONFIRMED') {
+    locked.resolvedAt = now;
+    locked.needsSeniorReview = false;
+  } else {
+    locked.reopenCount += 1;
+    locked.needsSeniorReview = true;
+    locked.escalationReason = `Citizen rejected resolution attempt #${attempt.attemptNumber}: ${reason.slice(0, 200)}`;
+    if (locked.reopenCount >= 2) {
+      locked.status = STATUS.ESCALATED;
+      finalStatus = STATUS.ESCALATED;
+    }
+    locked.observationsSinceResolution = 0;
+  }
+  await locked.save();
+
+  const actorType = via === 'TOKEN' ? 'ANONYMOUS' : 'CITIZEN';
+  await logEvent({
+    complaint: locked, actor: via === 'ACCOUNT' ? user : null, actorType,
+    action: decision === 'CONFIRMED' ? 'CITIZEN_CONFIRMED' : 'CITIZEN_REJECTED',
+    fromStatus: STATUS.AWAITING_CITIZEN_CONFIRMATION, toStatus: finalStatus,
+    message: decision === 'CONFIRMED' ? 'Reporter confirmed the cleanup' : 'Reporter reported the problem still exists; complaint reopened',
+    isPublic: true,
+  });
+
+  await locked.populate('department');
+  if (decision === 'CONFIRMED') {
+    await notifyDepartment(locked, { type: 'CITIZEN_CONFIRMED', title: 'Cleanup confirmed', message: `${locked.complaintId} was confirmed as resolved by the citizen.` });
+  } else {
+    await notifyDepartment(locked, { type: 'CITIZEN_REJECTED', title: 'Resolution rejected', message: `${locked.complaintId} was reopened: ${reason.slice(0, 120)}` });
+    await notifySeniorOfficers(locked, { type: 'SENIOR_REVIEW', title: 'Reopened complaint needs review', message: `${locked.complaintId} has been reopened ${locked.reopenCount} time(s).` });
+  }
+  return locked;
+}
+
+/* ---------------------------------------------------------------- timeout */
+
+/** Closes complaints whose confirmation deadline has passed. Safe to run repeatedly and concurrently. */
+async function closeExpiredConfirmations(now = new Date()) {
+  const expired = await Complaint.find({ status: STATUS.AWAITING_CITIZEN_CONFIRMATION, confirmationDeadline: { $lte: now } }).select('_id');
+  let closed = 0;
+  for (const { _id } of expired) {
+    const c = await Complaint.findOneAndUpdate(
+      { _id, status: STATUS.AWAITING_CITIZEN_CONFIRMATION, confirmationDeadline: { $lte: now } },
+      { $set: { status: STATUS.CLOSED_UNCONFIRMED } },
+      { new: true }
+    );
+    if (!c) continue;
+    const attempt = lastAttempt(c);
+    if (attempt) attempt.closedUnconfirmedAt = now;
+    await c.save();
+    await logEvent({
+      complaint: c, actorType: 'SYSTEM', action: 'CLOSED_UNCONFIRMED',
+      fromStatus: STATUS.AWAITING_CITIZEN_CONFIRMATION, toStatus: STATUS.CLOSED_UNCONFIRMED,
+      message: `No citizen response within ${env.confirmationDays} days; closed as unconfirmed`, isPublic: true,
+    });
+    if (c.reporter) await notifyUser(c.reporter, { type: 'CLOSED_UNCONFIRMED', title: 'Complaint closed', message: `${c.complaintId} was closed because no confirmation was received.`, complaint: c });
+    await c.populate('department');
+    await notifyDepartment(c, { type: 'CLOSED_UNCONFIRMED', title: 'Closed without confirmation', message: `${c.complaintId} closed as unconfirmed (not counted as resolved).` });
+    closed += 1;
+  }
+  return closed;
+}
+
+module.exports = {
+  STATUS_LABEL, lastAttempt, createComplaint, changeStatus, assignComplaint, addNote,
+  submitResolution, runAiComparison, citizenDecide, closeExpiredConfirmations,
+};

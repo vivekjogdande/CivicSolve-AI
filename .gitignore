@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.*
+!.env.example
+backend/uploads/*
+!backend/uploads/.gitkeep
+frontend/dist/
+*.log
+.DS_Store
+
+# Local backup files
+*.backup

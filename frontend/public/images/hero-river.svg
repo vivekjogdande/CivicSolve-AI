@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#cfe6ea"/><stop offset=".55" stop-color="#f3efe0"/><stop offset="1" stop-color="#f7e9c8"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5fa8bf"/><stop offset="1" stop-color="#1f6f8b"/>
+    </linearGradient>
+    <linearGradient id="hill1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9db89a"/><stop offset="1" stop-color="#7c9b7a"/></linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f8a62"/><stop offset="1" stop-color="#3f6b4a"/></linearGradient>
+    <linearGradient id="bank" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f5d43"/><stop offset="1" stop-color="#1c3f2d"/></linearGradient>
+  </defs>
+  <rect width="1600" height="760" fill="url(#sky)"/>
+  <circle cx="1190" cy="190" r="78" fill="#fbe7b0" opacity=".9"/>
+  <circle cx="1190" cy="190" r="118" fill="#fbe7b0" opacity=".25"/>
+  <path d="M0 360 C180 280 320 330 470 290 S760 250 930 300 1230 270 1400 310 1530 290 1600 300 V520 H0Z" fill="url(#hill1)"/>
+  <path d="M0 420 C150 350 300 390 470 360 S800 330 1000 380 1300 350 1600 390 V560 H0Z" fill="url(#hill2)"/>
+  <path d="M0 470 C260 440 420 500 700 480 S1180 430 1600 470 V760 H0Z" fill="url(#water)"/>
+  <path d="M-20 520 C200 505 330 560 560 545 S1000 500 1240 530 1500 520 1620 505" fill="none" stroke="#e7f3f6" stroke-width="3" opacity=".45"/>
+  <path d="M-20 580 C240 560 420 620 700 600 S1140 560 1400 590 1560 585 1620 570" fill="none" stroke="#e7f3f6" stroke-width="3" opacity=".35"/>
+  <path d="M-20 650 C260 640 520 690 800 672 S1220 640 1620 665" fill="none" stroke="#e7f3f6" stroke-width="3" opacity=".3"/>
+  <path d="M0 700 C300 650 520 700 800 690 S1300 650 1600 690 V760 H0Z" fill="url(#bank)"/>
+  <g fill="#244d38">
+    <path d="M110 700 l36 -130 l36 130z"/><path d="M165 704 l30 -105 l30 105z"/><path d="M60 706 l28 -92 l28 92z"/>
+    <path d="M1380 700 l34 -124 l34 124z"/><path d="M1440 704 l28 -98 l28 98z"/><path d="M1320 706 l26 -88 l26 88z"/>
+  </g>
+  <g stroke="#e4ece0" stroke-width="3" fill="none" opacity=".55" stroke-linecap="round">
+    <path d="M700 150 q18 -16 36 0 q18 -16 36 0"/><path d="M820 110 q14 -12 28 0 q14 -12 28 0"/><path d="M590 215 q12 -10 24 0 q12 -10 24 0"/>
+  </g>
+</svg>
