@@ -9,17 +9,17 @@ function linksFor(user) {
   if (user.role === 'CITIZEN') {
     return [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, end: true },
-      { to: '/report', label: 'Report Pollution', icon: FilePlus2 },
-      { to: '/track', label: 'Track Complaint', icon: Search },
-      { to: '/map', label: 'Pollution Map', icon: Map },
-      { to: '/awareness', label: 'Awareness', icon: BookOpen },
+      { to: '/report', label: 'Report Issue', icon: FilePlus2 },
+      { to: '/track', label: 'Track Issue', icon: Search },
+      { to: '/map', label: 'Civic Map', icon: Map },
+      { to: '/transparency', label: 'Community Impact', icon: BarChart3 },
       { to: '/profile', label: 'Profile & Settings', icon: UserCircle },
     ];
   }
   const l = [{ to: '/authority', label: 'Authority Dashboard', icon: LayoutDashboard, end: true }];
   if (user.role === 'SENIOR_OFFICER' || user.role === 'ADMIN') l.push({ to: '/authority/senior', label: 'Senior Officer View', icon: ShieldAlert });
   if (user.role === 'ADMIN') l.push({ to: '/admin', label: 'Admin & Accounts', icon: Users });
-  l.push({ to: '/map', label: 'Pollution Map', icon: Map }, { to: '/transparency', label: 'Transparency', icon: BarChart3 }, { to: '/profile', label: 'Profile & Settings', icon: UserCircle });
+  l.push({ to: '/map', label: 'Civic Map', icon: Map }, { to: '/transparency', label: 'Community Impact', icon: BarChart3 }, { to: '/profile', label: 'Profile & Settings', icon: UserCircle });
   return l;
 }
 
@@ -35,7 +35,7 @@ export default function DashboardLayout() {
   return (
     <div className="shell">
       <aside className={`sidebar ${authority ? 'authority' : ''} ${open ? 'open' : ''}`} aria-label="Dashboard navigation">
-        <Link to="/" className="brand"><img src="/favicon.svg" alt="" /> RiverCare</Link>
+        <Link to="/" className="brand"><img src="/favicon.svg" alt="" /> CivicSolve AI</Link>
         <div className="side-label">{authority ? 'Authority portal' : 'Citizen portal'}</div>
         {linksFor(user).map((l) => (
           <NavLink key={l.to} to={l.to} end={l.end} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>

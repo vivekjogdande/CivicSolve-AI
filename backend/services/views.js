@@ -46,18 +46,30 @@ function publicDetail(c, logs) {
     confirmationDeadline: c.status === STATUS.AWAITING_CITIZEN_CONFIRMATION ? c.confirmationDeadline : null,
     publicNotes: publicNotes(c),
     timeline: publicTimeline(logs),
+    intakeAiAnalysis: c.intakeAiAnalysis || null,
     access: 'PUBLIC',
   };
 }
 
 const aiAdvisory = (ai) =>
-  ai && ai.outcome
+  ai && (ai.outcome || ai.comparisonStatus)
     ? {
+        comparisonStatus: ai.comparisonStatus || 'INCONCLUSIVE',
         outcome: ai.outcome,
         confidence: ai.confidence,
+        beforeObservations: ai.beforeObservations || [],
+        afterObservations: ai.afterObservations || [],
+        observableChanges: ai.observableChanges || [],
+        remainingProblems: ai.remainingProblems || [],
+        complaintRelevance: ai.complaintRelevance || 'UNCERTAIN',
+        reasoningSummary: ai.reasoningSummary || ai.apparentChange || '',
+        limitations: ai.limitations || [],
         apparentChange: ai.apparentChange,
         remainingWaste: ai.remainingWaste,
         recommendedAction: ai.recommendedAction,
+        isIdenticalImage: !!ai.isIdenticalImage,
+        matchType: ai.matchType || 'UNKNOWN',
+        similarityScore: ai.similarityScore != null ? ai.similarityScore : null,
         model: ai.model,
         advisory: true,
       }
@@ -91,6 +103,7 @@ function citizenDetail(c, logs, access) {
     isAnonymous: c.isAnonymous,
     media: (c.media || []).map((m) => ({ url: m.url, kind: m.kind })),
     resolutionAttempts: attempts,
+    intakeAiAnalysis: c.intakeAiAnalysis || null,
     canRespond: c.status === STATUS.AWAITING_CITIZEN_CONFIRMATION && !!c.confirmationDeadline && c.confirmationDeadline > new Date(),
     confirmationDeadline: c.confirmationDeadline || null,
     access,
@@ -135,6 +148,7 @@ function authorityDetail(c, logs, observations = []) {
     observationCount: c.observationCount,
     observationsSinceResolution: c.observationsSinceResolution,
     recentObservations: observations.map((o) => ({ type: o.type, note: o.note, at: o.createdAt })),
+    intakeAiAnalysis: c.intakeAiAnalysis || null,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
     history: logs.map((l) => ({ at: l.createdAt, actorType: l.actorType, actorName: l.actorName, action: l.action, message: l.message, fromStatus: l.fromStatus, toStatus: l.toStatus, isPublic: l.isPublic })),

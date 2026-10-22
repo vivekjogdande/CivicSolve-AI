@@ -46,18 +46,123 @@ export function ValidationChecks({ validation }) {
 }
 
 export function AiAdvisory({ ai }) {
-  if (!ai || !ai.outcome) return null;
-  const tone = ai.outcome === 'POLLUTION_REDUCED' ? 'ok' : ai.outcome === 'POLLUTION_STILL_VISIBLE' ? 'warn' : 'info';
+  if (!ai || (!ai.outcome && !ai.comparisonStatus)) return null;
+
+  const status = ai.comparisonStatus || ai.outcome;
+  const isIdentical = ai.isIdenticalImage || status === 'IDENTICAL_IMAGE';
+  const label = AI_LABEL[status] || AI_LABEL[ai.outcome] || status;
+
+  let tone = 'info';
+  if (isIdentical || status === 'WORSENED') tone = 'error';
+  else if (status === 'IMPROVED' || ai.outcome === 'POLLUTION_REDUCED') tone = 'ok';
+  else if (status === 'PARTIALLY_IMPROVED' || ai.outcome === 'POLLUTION_STILL_VISIBLE') tone = 'warn';
+  else if (status === 'NO_CLEAR_IMPROVEMENT') tone = 'warn';
+
+  const obsChanges = ai.observableChanges && ai.observableChanges.length > 0 ? ai.observableChanges : null;
+  const remProblems = ai.remainingProblems && ai.remainingProblems.length > 0 ? ai.remainingProblems : null;
+  const limitations = ai.limitations && ai.limitations.length > 0 ? ai.limitations : null;
+
   return (
-    <div className={`alert alert-${tone}`}>
-      <Bot size={18} />
-      <div>
-        <strong>AI image comparison (advisory only): {AI_LABEL[ai.outcome]}</strong>
-        {ai.confidence && <div className="small">Confidence: {ai.confidence}</div>}
-        {ai.apparentChange && <div className="small">Change: {ai.apparentChange}</div>}
-        {ai.remainingWaste && <div className="small">Remaining visible waste: {ai.remainingWaste}</div>}
-        {ai.recommendedAction && <div className="small">Suggested next step: {ai.recommendedAction}</div>}
-        <div className="small muted">A local vision model produced this. It does not approve cleanups; the reporter decides.</div>
+    <div className={`alert alert-${tone}`} style={{ display: 'block', padding: '16px 18px', borderRadius: 10 }}>
+      <div className="row between" style={{ alignItems: 'flex-start', marginBottom: 10 }}>
+        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+          {isIdentical ? <AlertTriangle size={20} color="#b42318" /> : <Bot size={20} />}
+          <div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.85 }}>
+              AI Resolution Verification (Advisory)
+            </div>
+            <strong style={{ fontSize: '1.05rem', color: isIdentical ? '#b42318' : 'inherit' }}>
+              {label}
+            </strong>
+          </div>
+        </div>
+        {ai.confidence && (
+          <span
+            className="badge"
+            style={{
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              background: ai.confidence === 'HIGH' ? '#e0f2fe' : '#f1f5f9',
+              color: ai.confidence === 'HIGH' ? '#0369a1' : '#475569',
+              padding: '3px 9px',
+              borderRadius: 6,
+            }}
+          >
+            Confidence: {ai.confidence}
+          </span>
+        )}
+      </div>
+
+      {/* Prominent warning when identical/near-identical images are detected */}
+      {isIdentical && (
+        <div
+          style={{
+            margin: '10px 0 12px',
+            padding: '10px 14px',
+            background: '#fff1f0',
+            border: '1.5px solid #ffa39e',
+            borderRadius: 8,
+            color: '#cf1322',
+            fontSize: '0.86rem',
+          }}
+        >
+          <strong>⚠️ Duplicate Photo Warning:</strong> {ai.reasoningSummary || 'The uploaded resolution proof is identical or near-identical to the complaint photo. No physical cleanup has been demonstrated.'}
+          {ai.similarityScore != null && (
+            <div className="small" style={{ marginTop: 4 }}>
+              Match Type: <strong>{ai.matchType || 'EXACT_SHA256'}</strong> ({ai.similarityScore}% visual match). Vision model bypassed.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Summary reasoning if not identical */}
+      {!isIdentical && ai.reasoningSummary && (
+        <p className="small" style={{ margin: '6px 0 10px', fontSize: '0.9rem', lineHeight: 1.45 }}>
+          {ai.reasoningSummary}
+        </p>
+      )}
+
+      {/* Structured breakdowns */}
+      <div className="grid cols-2" style={{ gap: 12, marginTop: 10, fontSize: '0.85rem' }}>
+        {obsChanges && (
+          <div style={{ background: 'rgba(255,255,255,0.7)', padding: '8px 12px', borderRadius: 6 }}>
+            <strong style={{ display: 'block', marginBottom: 4, color: '#166534' }}>✓ Observed Changes:</strong>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {obsChanges.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {remProblems && (
+          <div style={{ background: 'rgba(255,255,255,0.7)', padding: '8px 12px', borderRadius: 6 }}>
+            <strong style={{ display: 'block', marginBottom: 4, color: '#991b1b' }}>⚠ Remaining Issues:</strong>
+            <ul style={{ margin: 0, paddingLeft: 18 }}>
+              {remProblems.map((p, i) => (
+                <li key={i}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Suggested next step */}
+      {ai.recommendedAction && (
+        <div className="small" style={{ marginTop: 10, fontWeight: 600 }}>
+          <strong>Suggested Action:</strong> {ai.recommendedAction}
+        </div>
+      )}
+
+      {/* Limitations note */}
+      {limitations && limitations.length > 0 && (
+        <div className="small muted" style={{ marginTop: 8, fontStyle: 'italic' }}>
+          Limitations: {limitations.join('; ')}
+        </div>
+      )}
+
+      <div className="small muted" style={{ marginTop: 10, borderTop: '1px solid rgba(0,0,0,0.08)', paddingTop: 6, fontSize: '0.78rem' }}>
+        Deterministic image hashing & local Ollama vision model ({ai.model || 'llava'}). Advisory only: cannot automatically approve resolution. Citizen confirmation is required.
       </div>
     </div>
   );
@@ -109,6 +214,32 @@ export function ComplaintSummary({ c }) {
         <dt>Last update</dt><dd>{fmtDateTime(c.updatedAt)}</dd>
         {c.confirmationDeadline && c.status === 'AWAITING_CITIZEN_CONFIRMATION' && <><dt>Confirm by</dt><dd>{fmtDateTime(c.confirmationDeadline)}</dd></>}
       </dl>
+      {c.intakeAiAnalysis && (
+        <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--slate-200)' }}>
+          <div className="row between" style={{ marginBottom: 4 }}>
+            <span className="ai-badge" style={{ fontSize: '0.72rem' }}>
+              <Bot size={13} style={{ verticalAlign: -2 }} /> {c.intakeAiAnalysis.modelUsed || 'AI Intake Triage'}
+            </span>
+            {c.intakeAiAnalysis.confidenceScore && (
+              <span className="small muted">Confidence: {c.intakeAiAnalysis.confidenceScore}%</span>
+            )}
+          </div>
+          {c.intakeAiAnalysis.summary && (
+            <p className="small" style={{ margin: '6px 0 4px', color: 'var(--slate-800)' }}>
+              <strong>AI Triage:</strong> {c.intakeAiAnalysis.summary}
+            </p>
+          )}
+          {c.intakeAiAnalysis.safetyHazards && c.intakeAiAnalysis.safetyHazards.length > 0 && (
+            <div className="row" style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
+              {c.intakeAiAnalysis.safetyHazards.map((h, i) => (
+                <span key={i} className="hazard-tag" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
+                  <AlertTriangle size={12} /> {h}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

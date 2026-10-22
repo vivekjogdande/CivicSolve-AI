@@ -6,7 +6,7 @@ const { asyncHandler, unauthorized, badRequest, conflict } = require('../utils/e
 const { logEvent } = require('../services/auditService');
 
 // Compared against when the email is unknown, so response time does not reveal which emails exist.
-const DUMMY_HASH = bcrypt.hashSync('rivercare-dummy-password', 12);
+const DUMMY_HASH = bcrypt.hashSync('civicsolve-dummy-password', 12);
 
 const register = asyncHandler(async (req, res) => {
   const { name, email, phone, password } = req.body;

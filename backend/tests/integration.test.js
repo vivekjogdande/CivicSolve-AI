@@ -1,7 +1,7 @@
 /**
  * End-to-end workflow test against a REAL MongoDB.
  * Skipped unless MONGODB_TEST_URI is set, e.g.
- *   MONGODB_TEST_URI=mongodb://127.0.0.1:27017/RiverCareTest npm run test:integration
+ *   MONGODB_TEST_URI=mongodb://127.0.0.1:27017/CivicSolveTest npm run test:integration
  * It creates a throw-away database and drops it afterwards.
  */
 process.env.NODE_ENV = 'test';
@@ -22,7 +22,7 @@ const pad = (n) => String(n).padStart(2, '0');
 const exifTime = (d) => `${d.getFullYear()}:${pad(d.getMonth() + 1)}:${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 const soon = () => exifTime(new Date(Date.now() + 60 * 1000));
 
-suite('RiverCare workflows (real MongoDB)', () => {
+suite('CivicSolve AI workflows (real MongoDB)', () => {
   let app;
   let Complaint;
   let User;
@@ -65,7 +65,7 @@ suite('RiverCare workflows (real MongoDB)', () => {
   }
 
   beforeAll(async () => {
-    dbName = `RiverCareTest_${Date.now()}`;
+    dbName = `CivicSolveTest_${Date.now()}`;
     await mongoose.connect(BASE_URI, { dbName });
     app = require('../app');
     Complaint = require('../models/Complaint');

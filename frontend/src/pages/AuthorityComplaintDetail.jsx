@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { Bot, Upload, ArrowUpCircle, StickyNote, UserCheck, Flag } from 'lucide-react';
+import { Bot, Upload, ArrowUpCircle, StickyNote, UserCheck, Flag, Sparkles, BrainCircuit, AlertTriangle } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,6 +28,7 @@ export default function AuthorityComplaintDetail() {
   const state = useFetch(() => api.get(`/api/authority/complaints/${encodeURIComponent(complaintId)}`), [complaintId]);
   const officers = useFetch(() => api.get('/api/authority/officers'), []);
   const depts = useFetch(() => api.get('/api/authority/departments'), []);
+  const responders = useFetch(() => api.get(`/api/authority/complaints/${encodeURIComponent(complaintId)}/responders`), [complaintId]);
   const [busy, setBusy] = useState('');
   const [tab, setTab] = useState('overview');
   const [assign, setAssign] = useState({ officerId: '', departmentId: '' });
@@ -122,6 +123,33 @@ export default function AuthorityComplaintDetail() {
                       {c.confirmationDeadline && c.status === 'AWAITING_CITIZEN_CONFIRMATION' && <><dt>Citizen deadline</dt><dd>{fmtDateTime(c.confirmationDeadline)}</dd></>}
                       <dt>Community</dt><dd>{c.observationCount} observation(s)</dd>
                     </dl>
+
+                    {c.intakeAiAnalysis && (
+                      <div style={{ marginTop: 10, padding: 12, background: 'linear-gradient(135deg, #f0fdfa, #f8fafc)', border: '1.5px solid #99f6e4', borderRadius: 'var(--radius-sm)' }}>
+                        <div className="row between" style={{ marginBottom: 6 }}>
+                          <span className="ai-badge" style={{ fontSize: '0.72rem' }}>
+                            <Sparkles size={12} /> AI Problem Triage ({c.intakeAiAnalysis.confidenceScore}%)
+                          </span>
+                          <span className="small muted">Dept: {c.intakeAiAnalysis.recommendedDepartment}</span>
+                        </div>
+                        <p className="small" style={{ margin: '0 0 6px', color: 'var(--slate-800)' }}>
+                          <strong>AI Summary:</strong> {c.intakeAiAnalysis.summary}
+                        </p>
+                        <div className="small" style={{ marginBottom: 6 }}>
+                          <strong>Recommended Next Action:</strong> {c.intakeAiAnalysis.recommendedAction}
+                        </div>
+                        {c.intakeAiAnalysis.safetyHazards && c.intakeAiAnalysis.safetyHazards.length > 0 && (
+                          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                            {c.intakeAiAnalysis.safetyHazards.map((h, idx) => (
+                              <span key={idx} className="hazard-tag" style={{ fontSize: '0.75rem', padding: '2px 8px' }}>
+                                <AlertTriangle size={12} /> {h}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {c.recentObservations.length > 0 && <div><strong className="small">Recent community observations</strong>{c.recentObservations.map((o, i) => <div key={i} className="small muted">{fmtDateTime(o.at)} · {o.type === 'STILL_POLLUTED' ? 'Still polluted' : 'Looks clean'}{o.note ? `: ${o.note}` : ''}</div>)}</div>}
                   </div>
                   <div className="stack">
@@ -134,7 +162,40 @@ export default function AuthorityComplaintDetail() {
               {tab === 'actions' && (
                 <div className="grid cols-2" style={{ alignItems: 'start' }}>
                   <div className="card stack">
-                    <h3 style={{ margin: 0 }}><UserCheck size={18} style={{ verticalAlign: -3 }} /> Assign</h3>
+                    <h3 style={{ margin: 0 }}><UserCheck size={18} style={{ verticalAlign: -3 }} /> Assign Responder</h3>
+                    
+                    {responders.data && responders.data.recommendations && responders.data.recommendations.length > 0 && (
+                      <div style={{ padding: 12, background: 'var(--slate-50)', borderRadius: 8, border: '1px solid var(--slate-200)', marginBottom: 8 }}>
+                        <div className="row between" style={{ marginBottom: 8 }}>
+                          <span className="small" style={{ fontWeight: 700, color: 'var(--navy-900)' }}>
+                            <Sparkles size={14} style={{ verticalAlign: -2, color: 'var(--teal-600)' }} /> Smart Responder Matching
+                          </span>
+                          <span className="small muted" style={{ fontSize: '0.72rem' }}>Expertise 35% · Proximity 30% · Workload 20% · Role 15%</span>
+                        </div>
+                        <div className="stack" style={{ gap: 6 }}>
+                          {responders.data.recommendations.slice(0, 3).map((r) => (
+                            <div key={r.officerId} className="row between" style={{ background: '#fff', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--slate-200)', fontSize: '0.85rem' }}>
+                              <div>
+                                <strong>{r.name}</strong> <span className="small muted">({r.department})</span>
+                                <div className="small muted" style={{ fontSize: '0.75rem' }}>{r.matchReason}</div>
+                              </div>
+                              <div className="row" style={{ gap: 8 }}>
+                                <span className="match-score-pill">{r.matchScore}%</span>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '3px 8px', fontSize: '0.78rem' }}
+                                  onClick={() => setAssign({ ...assign, officerId: r.officerId })}
+                                >
+                                  Select
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <Field label="Officer" htmlFor="officer"><select id="officer" className="select" value={assign.officerId} onChange={(e) => setAssign({ ...assign, officerId: e.target.value })}><option value="">No change</option>{(officers.data ? officers.data.officers : []).map((o) => <option key={o.id} value={o.id}>{o.name}{o.department ? ` (${o.department})` : ''}</option>)}</select></Field>
                     {isSenior && <Field label="Department" htmlFor="dept"><select id="dept" className="select" value={assign.departmentId} onChange={(e) => setAssign({ ...assign, departmentId: e.target.value })}><option value="">No change</option>{(depts.data ? depts.data.departments : []).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</select></Field>}
                     <ButtonLoading type="button" className="btn btn-primary" loading={busy === 'assign'} disabled={!open || (!assign.officerId && !assign.departmentId)} onClick={() => run('assign', () => api.post(`${base}/assign`, { ...(assign.officerId ? { officerId: assign.officerId } : {}), ...(assign.departmentId ? { departmentId: assign.departmentId } : {}) }), 'Assignment updated.').then((ok) => ok && setAssign({ officerId: '', departmentId: '' }))}>Save assignment</ButtonLoading>
@@ -218,7 +279,19 @@ export default function AuthorityComplaintDetail() {
                       <p style={{ margin: 0 }}><strong>Citizen decision:</strong> {a.citizenDecision && a.citizenDecision.decision ? `${a.citizenDecision.decision === 'CONFIRMED' ? 'Confirmed fixed' : 'Rejected: still a problem'} on ${fmtDateTime(a.citizenDecision.decidedAt)}${a.citizenDecision.reason ? ` — “${a.citizenDecision.reason}”` : ''}` : a.closedUnconfirmedAt ? `No response; closed unconfirmed ${fmtDateTime(a.closedUnconfirmedAt)}` : `Pending (deadline ${fmtDateTime(a.confirmationDeadline)})`}</p>
                       {a.citizenDecision && a.citizenDecision.media && a.citizenDecision.media.length > 0 && <div className="gallery" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(160px,220px))' }}>{a.citizenDecision.media.map((m) => <Media key={m.url} m={m} alt="Citizen follow-up photograph" />)}</div>}
                       <AiAdvisory ai={a.ai} />
-                      <div><ButtonLoading type="button" className="btn btn-secondary btn-sm" loading={busy === `ai${a.id}`} onClick={() => run(`ai${a.id}`, () => api.post(`${base}/ai-compare`, { attemptId: a.id }), 'AI comparison finished (advisory only).')}><Bot size={15} /> {a.ai && a.ai.outcome ? 'Re-run AI comparison' : 'Run AI comparison'}</ButtonLoading> <span className="small muted">Uses the local Ollama model; the rest of the app works without it.</span></div>
+                      <div style={{ marginTop: 8 }}>
+                        <ButtonLoading
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          loading={busy === `ai${a.id}`}
+                          onClick={() => run(`ai${a.id}`, () => api.post(`${base}/ai-compare`, { attemptId: a.id }), 'AI comparison finished (advisory only).')}
+                        >
+                          <Bot size={15} /> {a.ai && (a.ai.outcome || a.ai.comparisonStatus) ? 'Re-run AI comparison' : 'Run AI comparison'}
+                        </ButtonLoading>
+                        <span className="small muted" style={{ marginLeft: 8 }}>
+                          Deterministic SHA-256 & perceptual similarity check + local vision model ({a.ai && a.ai.model ? a.ai.model : 'Ollama'}).
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>

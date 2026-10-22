@@ -14,13 +14,16 @@ export const STATUS_KEYS = Object.keys(STATUS_META);
 export const statusLabel = (s) => (STATUS_META[s] ? STATUS_META[s].label : s);
 
 export const CATEGORY_OPTIONS = [
-  { value: 'PLASTIC_WASTE', label: 'Plastic waste' },
-  { value: 'SEWAGE_DISCHARGE', label: 'Sewage discharge' },
-  { value: 'INDUSTRIAL_WASTE', label: 'Industrial waste' },
-  { value: 'CHEMICAL_POLLUTION', label: 'Chemical pollution' },
-  { value: 'SOLID_WASTE', label: 'Solid waste' },
-  { value: 'DEAD_FISH_WILDLIFE', label: 'Dead fish or wildlife' },
-  { value: 'OTHER', label: 'Other pollution' },
+  { value: 'POTHOLES_ROAD_DAMAGE', label: 'Potholes & Road Damage' },
+  { value: 'OPEN_MANHOLE', label: 'Open Manholes & Fall Hazards' },
+  { value: 'GARBAGE_ACCUMULATION', label: 'Garbage Accumulation & Solid Waste' },
+  { value: 'WATER_LEAKAGE', label: 'Water Pipe Leakage & Supply Failure' },
+  { value: 'SEWAGE_OVERFLOW', label: 'Sewage Overflow & Drainage Blockage' },
+  { value: 'STREETLIGHT_FAULT', label: 'Damaged Streetlights & Electrical Hazards' },
+  { value: 'PUBLIC_FACILITY_DAMAGE', label: 'Public Infrastructure & Footpath Damage' },
+  { value: 'ENCROACHMENT_OBSTRUCTION', label: 'Encroachment & Road Obstruction' },
+  { value: 'AIR_POLLUTION_BURNING', label: 'Garbage Burning & Air Hazard' },
+  { value: 'OTHER', label: 'Other Civic Grievance' },
 ];
 export const CATEGORY_LABEL = Object.fromEntries(CATEGORY_OPTIONS.map((c) => [c.value, c.label]));
 
@@ -33,17 +36,26 @@ export const SEVERITY_OPTIONS = [
 export const SEVERITY_LABEL = Object.fromEntries(SEVERITY_OPTIONS.map((s) => [s.value, s.label]));
 
 export const AI_LABEL = {
-  POLLUTION_REDUCED: 'Pollution appears reduced',
-  POLLUTION_STILL_VISIBLE: 'Pollution still visible',
-  UNCERTAIN: 'Uncertain',
-  MODEL_UNAVAILABLE: 'AI model unavailable',
+  IDENTICAL_IMAGE: 'Identical images — no change demonstrated.',
+  IMPROVED: 'Visible improvement detected.',
+  PARTIALLY_IMPROVED: 'Partial improvement — issue remains visible.',
+  NO_CLEAR_IMPROVEMENT: 'No clear improvement detected.',
+  WORSENED: 'Condition worsened.',
+  INCONCLUSIVE: 'Inconclusive — manual review required.',
+  MODEL_UNAVAILABLE: 'AI model unavailable — manual review required.',
+  // Legacy labels
+  ISSUE_RESOLVED: 'Visible improvement detected.',
+  POLLUTION_REDUCED: 'Visible improvement detected.',
+  POLLUTION_STILL_VISIBLE: 'Partial improvement — issue remains visible.',
+  ISSUE_STILL_VISIBLE: 'Issue still visible on ground.',
+  UNCERTAIN: 'Inconclusive — manual review required.',
 };
 
 export const ROLE_LABEL = { CITIZEN: 'Citizen', OFFICER: 'Officer', SENIOR_OFFICER: 'Senior Officer', ADMIN: 'Administrator' };
 
-// Indrayani River region (Alandi / Dehu / Pimpri-Chinchwad, Maharashtra): default map centre.
-export const DEFAULT_CENTER = [18.676, 73.88];
-export const DEFAULT_ZOOM = 11;
+// Pune Municipal Corporation metropolitan civic grid: default map centre.
+export const DEFAULT_CENTER = [18.5204, 73.8567];
+export const DEFAULT_ZOOM = 12;
 
 export const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 export const fmtDateTime = (d) =>

@@ -143,9 +143,9 @@ function Activity() {
         <div className="stack" style={{ gap: 18 }}>
           <div className="grid cols-4">
             <StatCard icon={Users} value={d.counts.citizens} label="Citizens" />
-            <StatCard icon={Landmark} value={d.counts.authorities} label="Authority accounts" tone="river" />
+            <StatCard icon={Landmark} value={d.counts.authorities} label="Authority accounts" tone="civic" />
             <StatCard icon={FileText} value={d.counts.complaints} label="Complaints" />
-            <StatCard icon={Building2} value={d.counts.departments} label="Active departments" tone="river" />
+            <StatCard icon={Building2} value={d.counts.departments} label="Active departments" tone="civic" />
           </div>
           <div className="card"><h3>Recent activity (audit log)</h3>
             {d.recentActivity.length === 0 ? <p className="muted small">No activity yet.</p> : (

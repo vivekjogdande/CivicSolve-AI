@@ -15,6 +15,7 @@ router.get('/complaints', validate(s.authorityListQuery, 'query'), c.list);
 router.get('/senior/queue', requireSenior, validate(s.authorityListQuery, 'query'), c.seniorQueue);
 
 router.get('/complaints/:complaintId', c.loadComplaint, c.detail);
+router.get('/complaints/:complaintId/responders', c.loadComplaint, c.getRecommendedResponders);
 router.post('/complaints/:complaintId/assign', c.loadComplaint, validate(s.assignBody), c.assign);
 router.post('/complaints/:complaintId/status', c.loadComplaint, validate(s.statusBody), c.setStatus);
 router.post('/complaints/:complaintId/notes', c.loadComplaint, validate(s.noteBody), c.addNote);

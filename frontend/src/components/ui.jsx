@@ -75,7 +75,7 @@ export function SeverityBadge({ severity }) {
 export function StatCard({ icon: Icon, value, label, to, tone }) {
   const body = (
     <>
-      {Icon && <span className={`icon-bubble ${tone === 'river' ? 'river' : ''}`}><Icon size={22} /></span>}
+      {Icon && <span className={`icon-bubble ${tone === 'river' || tone === 'civic' ? 'civic' : ''}`}><Icon size={22} /></span>}
       <div>
         <div className="num">{value}</div>
         <div className="lbl">{label}</div>

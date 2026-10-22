@@ -7,7 +7,7 @@ async function main() {
   assertEnv();
   await connectDB();
   startScheduler();
-  app.listen(env.port, () => console.log(`[server] RiverCare API listening on http://localhost:${env.port}`));
+  app.listen(env.port, () => console.log(`[server] CivicSolve AI API listening on http://localhost:${env.port}`));
 }
 
 main().catch((err) => {

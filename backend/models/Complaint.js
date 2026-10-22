@@ -27,17 +27,59 @@ const checkSchema = new Schema(
 
 const aiSchema = new Schema(
   {
+    comparisonStatus: {
+      type: String,
+      enum: ['IMPROVED', 'PARTIALLY_IMPROVED', 'NO_CLEAR_IMPROVEMENT', 'WORSENED', 'INCONCLUSIVE', 'IDENTICAL_IMAGE', 'MODEL_UNAVAILABLE'],
+      default: 'INCONCLUSIVE',
+    },
     outcome: { type: String, enum: AI_OUTCOMES },
     model: String,
+    beforeObservations: [String],
+    afterObservations: [String],
+    observableChanges: [String],
+    remainingProblems: [String],
+    complaintRelevance: {
+      type: String,
+      enum: ['RELEVANT', 'PARTIALLY_RELEVANT', 'IRRELEVANT', 'UNCERTAIN'],
+      default: 'UNCERTAIN',
+    },
+    confidence: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'UNKNOWN'], default: 'UNKNOWN' },
+    reasoningSummary: String,
+    limitations: [String],
+    recommendedAction: String,
+    // Visual-difference analysis layer
+    isIdenticalImage: { type: Boolean, default: false },
+    matchType: { type: String, enum: ['EXACT_SHA256', 'PERCEPTUAL_NEAR_IDENTICAL', 'DIFFERENT', 'UNREADABLE', 'UNKNOWN'], default: 'UNKNOWN' },
+    similarityScore: Number,
+    beforeSha256: String,
+    afterSha256: String,
+    // Legacy fields preserved for backward compatibility
     pollutionBefore: String,
     pollutionAfter: String,
     apparentChange: String,
     remainingWaste: String,
-    confidence: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'UNKNOWN'], default: 'UNKNOWN' },
-    recommendedAction: String,
     error: String,
     comparedAt: Date,
     comparedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+  },
+  { _id: false }
+);
+
+const intakeAiSchema = new Schema(
+  {
+    analyzedAt: { type: Date, default: Date.now },
+    suggestedCategory: String,
+    suggestedPriority: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+    category: String,
+    priority: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] },
+    summary: String,
+    safetyHazards: [String],
+    recommendedDepartment: String,
+    recommendedAction: String,
+    confidenceScore: Number,
+    isAiGenerated: { type: Boolean, default: false },
+    isFallback: { type: Boolean, default: false },
+    modelUsed: String,
   },
   { _id: false }
 );
@@ -92,6 +134,7 @@ const complaintSchema = new Schema(
       coordinates: { type: [Number], required: true }, // [lng, lat]
     },
     reporter: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+    reporterName: { type: String, trim: true, maxlength: 100 },
     isAnonymous: { type: Boolean, default: false },
     anonymousTokenHash: { type: String, select: false },
     department: { type: Schema.Types.ObjectId, ref: 'Department', index: true },
@@ -107,6 +150,7 @@ const complaintSchema = new Schema(
     observationCount: { type: Number, default: 0 },
     observationsSinceResolution: { type: Number, default: 0 },
     resolvedAt: Date,
+    intakeAiAnalysis: intakeAiSchema,
   },
   { timestamps: true }
 );

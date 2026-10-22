@@ -1,12 +1,15 @@
 {
-  "name": "rivercare-backend",
+  "name": "civicsolve-backend",
   "version": "1.0.0",
-  "description": "RiverCare API - river pollution reporting and verified resolution",
+  "description": "CivicSolve AI API - intelligent civic grievance intake, prioritization, responder matching, and verified resolution",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "seed": "node scripts/seed.js",
+    "seed": "node scripts/seed-civicsolve.js",
+    "seed:civicsolve": "node scripts/seed-civicsolve.js",
+    "seed:bootstrap": "node scripts/seed.js",
+    "create:admin": "node scripts/create-admin.js",
     "test": "jest --runInBand",
     "test:integration": "jest tests/integration.test.js --runInBand"
   },
@@ -23,6 +26,7 @@
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
+    "sharp": "^0.35.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

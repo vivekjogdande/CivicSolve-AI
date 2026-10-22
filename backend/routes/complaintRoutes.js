@@ -9,6 +9,10 @@ const s = require('../utils/schemas');
 // Create: multer parses the form -> validate fields -> only then write files to disk.
 router.post('/', createComplaintLimiter, optionalAuth, complaintUpload.array('media', 5), validate(s.createComplaintSchema), persistFiles(), c.create);
 
+// AI and duplicate detection services
+router.post('/ai-analyze', optionalAuth, c.aiAnalyze);
+router.get('/check-duplicates', optionalAuth, c.getDuplicates);
+
 // Citizen (account) routes. Fixed paths must come before "/:complaintId".
 router.get('/mine', requireCitizen, validate(s.citizenListQuery, 'query'), c.listMine);
 router.get('/mine/summary', requireCitizen, c.mySummary);

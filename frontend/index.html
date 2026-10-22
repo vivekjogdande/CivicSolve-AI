@@ -3,16 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="RiverCare: report river pollution, track complaints and verify cleanup on the Indrayani River." />
-    <meta name="theme-color" content="#1f4d3a" />
+    <meta name="description" content="CivicSolve AI — From Public Problems to Verified Solutions. Report potholes, garbage, streetlights, and drainage issues. AI-powered triage and citizen-verified civic resolution." />
+    <meta name="theme-color" content="#0B192C" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet" />
-    <title>RiverCare | Protect Our Rivers</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      @keyframes civicPulse {
+        0%, 100% { transform: scaleX(0.2); transform-origin: left; opacity: 0.6; }
+        50% { transform: scaleX(1); transform-origin: left; opacity: 1; }
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin: 0; background: #060e1a;">
+    <div id="root">
+      <div id="initial-civic-loader" style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #060e1a; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #0d9488, #2dd4bf); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 18px; color: #fff; box-shadow: 0 0 20px rgba(45, 212, 191, 0.4);">CS</div>
+          <span style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: #fff;">CivicSolve AI</span>
+        </div>
+        <div style="width: 160px; height: 4px; background: rgba(255, 255, 255, 0.1); border-radius: 99px; overflow: hidden; position: relative;">
+          <div style="width: 100%; height: 100%; background: linear-gradient(90deg, #0d9488, #2dd4bf); border-radius: 99px; animation: civicPulse 1.2s infinite ease-in-out;"></div>
+        </div>
+        <span style="font-size: 11px; color: #94a3b8; margin-top: 14px; letter-spacing: 0.1em; font-family: ui-monospace, Menlo, monospace;">INITIALIZING 3D CIVIC PLATFORM…</span>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

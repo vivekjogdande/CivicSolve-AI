@@ -31,7 +31,14 @@ export default function CitizenLogin() {
   };
 
   return (
-    <AuthShell title="Citizen login" subtitle="Welcome back. Log in to follow your complaints." aside={{ title: 'Every complaint deserves an answer', text: 'Track progress, see the cleanup proof, and have the final say on whether the river is really clean.' }}>
+    <AuthShell
+      title="Citizen login"
+      subtitle="Welcome back. Log in to follow your civic complaints."
+      aside={{
+        title: 'Every civic issue deserves resolution',
+        text: 'Track real-time progress, inspect verified field repair evidence, and have the final say on whether your neighborhood problem is genuinely resolved.'
+      }}
+    >
       <form onSubmit={submit} noValidate>
         {err && <Alert type="error">{err}</Alert>}
         <Field label="Email" htmlFor="email" error={errs.email}><input id="email" type="email" className={`input ${errs.email ? 'invalid' : ''}`} autoComplete="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>

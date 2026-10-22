@@ -43,7 +43,7 @@ export default function CitizenRegister() {
   };
 
   return (
-    <AuthShell title="Create your citizen account" subtitle="Track every complaint you file and confirm cleanups." aside={{ title: 'Your reports, in one place', text: 'With an account you can follow complaints from your dashboard and confirm or reject cleanup proof. You can still report anonymously without one.' }}>
+    <AuthShell title="Create your citizen account" subtitle="Track every complaint you file and confirm civic repairs." aside={{ title: 'Your reports, in one place', text: 'With an account you can follow complaints from your dashboard and confirm or dispute resolution proof. You can still report anonymously without an account.' }}>
       <form onSubmit={submit} noValidate>
         {err && <Alert type="error">{err}</Alert>}
         <Field label="Full name" htmlFor="name" error={errs.name} required><input id="name" className={`input ${errs.name ? 'invalid' : ''}`} autoComplete="name" value={f.name} onChange={on('name')} /></Field>

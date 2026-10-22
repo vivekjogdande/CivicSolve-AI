@@ -22,8 +22,12 @@ export function AuthProvider({ children }) {
   // Any API call that comes back 401 ends the session
   useEffect(() => {
     const onUnauthorized = () => { setUser(null); toast.error('Your session expired. Please log in again.'); };
+    window.addEventListener('cs:unauthorized', onUnauthorized);
     window.addEventListener('rc:unauthorized', onUnauthorized);
-    return () => window.removeEventListener('rc:unauthorized', onUnauthorized);
+    return () => {
+      window.removeEventListener('cs:unauthorized', onUnauthorized);
+      window.removeEventListener('rc:unauthorized', onUnauthorized);
+    };
   }, [toast]);
 
   const finish = (d) => { tokenStore.set(d.token); setUser(d.user); return d.user; };

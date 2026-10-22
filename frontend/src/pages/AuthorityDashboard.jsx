@@ -23,21 +23,21 @@ export default function AuthorityDashboard() {
       {sum.error ? <ErrorState message={sum.error.message} onRetry={sum.reload} /> : (
         <div className="grid cols-4">
           <StatCard icon={Inbox} value={v('totalAssigned')} label="Total assigned" />
-          <StatCard icon={Clock} value={v('pending')} label="Pending (new / under review)" tone="river" />
+          <StatCard icon={Clock} value={v('pending')} label="Pending (new / under review)" tone="civic" />
           <StatCard icon={Wrench} value={v('inProgress')} label="In progress" />
-          <StatCard icon={Hourglass} value={v('awaitingConfirmation')} label="Awaiting citizen confirmation" tone="river" />
+          <StatCard icon={Hourglass} value={v('awaitingConfirmation')} label="Awaiting citizen confirmation" tone="civic" />
           <StatCard icon={CheckCircle2} value={v('confirmed')} label="Citizen-confirmed resolutions" />
-          <StatCard icon={RotateCcw} value={v('reopened')} label="Reopened" tone="river" />
+          <StatCard icon={RotateCcw} value={v('reopened')} label="Reopened" tone="civic" />
           <StatCard icon={XCircle} value={v('closedUnconfirmed')} label="Closed unconfirmed" />
-          <StatCard icon={ArrowUpCircle} value={v('escalated')} label="Escalated" tone="river" />
+          <StatCard icon={ArrowUpCircle} value={v('escalated')} label="Escalated" tone="civic" />
         </div>
       )}
       <div className="grid cols-2">
         <div className="chart-card"><h3>Complaints by category</h3>
-          {charts.data && charts.data.byCategory.length ? <div className="chart-box"><ResponsiveContainer><BarChart data={charts.data.byCategory.map((r) => ({ name: CATEGORY_LABEL[r.category] || r.category, count: r.count }))} layout="vertical" margin={{ left: 20 }}><CartesianGrid stroke="#e4e0d3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12 }} /><Tooltip /><Bar dataKey="count" name="Complaints" fill="#1f4d3a" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div> : <p className="muted small" style={{ padding: 30, textAlign: 'center' }}>{charts.loading ? 'Loading…' : 'No data yet.'}</p>}
+          {charts.data && charts.data.byCategory.length ? <div className="chart-box"><ResponsiveContainer><BarChart data={charts.data.byCategory.map((r) => ({ name: CATEGORY_LABEL[r.category] || r.category, count: r.count }))} layout="vertical" margin={{ left: 20 }}><CartesianGrid stroke="#e4e0d3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 12 }} /><Tooltip /><Bar dataKey="count" name="Complaints" fill="#0b192c" radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div> : <p className="muted small" style={{ padding: 30, textAlign: 'center' }}>{charts.loading ? 'Loading…' : 'No data yet.'}</p>}
         </div>
         <div className="chart-card"><h3>Complaints received per month</h3>
-          {charts.data && charts.data.byMonth.length ? <div className="chart-box"><ResponsiveContainer><LineChart data={charts.data.byMonth}><CartesianGrid stroke="#e4e0d3" /><XAxis dataKey="month" tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} /><Tooltip /><Line type="monotone" dataKey="count" name="Complaints" stroke="#1b6f8f" strokeWidth={2} dot /></LineChart></ResponsiveContainer></div> : <p className="muted small" style={{ padding: 30, textAlign: 'center' }}>{charts.loading ? 'Loading…' : 'No data yet.'}</p>}
+          {charts.data && charts.data.byMonth.length ? <div className="chart-box"><ResponsiveContainer><LineChart data={charts.data.byMonth}><CartesianGrid stroke="#e4e0d3" /><XAxis dataKey="month" tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} /><Tooltip /><Line type="monotone" dataKey="count" name="Complaints" stroke="#0d9488" strokeWidth={2} dot /></LineChart></ResponsiveContainer></div> : <p className="muted small" style={{ padding: 30, textAlign: 'center' }}>{charts.loading ? 'Loading…' : 'No data yet.'}</p>}
         </div>
       </div>
       <h2 style={{ marginBottom: 0 }}>Complaint management</h2>

@@ -1,15 +1,18 @@
 const BASE = import.meta.env.VITE_API_URL || '';
-const TOKEN_KEY = 'rc_token';
+const TOKEN_KEY = 'cs_token';
 
 export const tokenStore = {
   get: () => {
-    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+    try { return localStorage.getItem(TOKEN_KEY) || localStorage.getItem('rc_token'); } catch { return null; }
   },
   set: (t) => {
     try { localStorage.setItem(TOKEN_KEY, t); } catch { /* storage unavailable */ }
   },
   clear: () => {
-    try { localStorage.removeItem(TOKEN_KEY); } catch { /* storage unavailable */ }
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem('rc_token');
+    } catch { /* storage unavailable */ }
   },
 };
 
@@ -39,7 +42,7 @@ async function request(method, path, { body, form, params, auth = true } = {}) {
   try {
     res = await fetch(url, { method, headers, body: payload });
   } catch {
-    throw new ApiError('Cannot reach the RiverCare server. Check your connection and that the backend is running.', 0);
+    throw new ApiError('Cannot reach the CivicSolve AI server. Check your connection and that the backend is running.', 0);
   }
   let json = null;
   try { json = await res.json(); } catch { /* non-JSON response */ }
@@ -47,6 +50,7 @@ async function request(method, path, { body, form, params, auth = true } = {}) {
   if (!res.ok || (json && json.success === false)) {
     if (res.status === 401 && token && auth) {
       tokenStore.clear();
+      window.dispatchEvent(new CustomEvent('cs:unauthorized'));
       window.dispatchEvent(new CustomEvent('rc:unauthorized'));
     }
     const err = json && json.error ? json.error : {};

@@ -58,8 +58,8 @@ export default function DecisionPanel({ complaint, confirm, reject, onUpdated })
   };
 
   return (
-    <div className="card stack" style={{ borderColor: 'var(--river)', borderWidth: 2 }}>
-      <div className="row between"><h3 style={{ margin: 0 }}>Is the pollution really gone?</h3><Deadline deadline={complaint.confirmationDeadline} /></div>
+    <div className="card stack" style={{ borderColor: 'var(--teal-600)', borderWidth: 2 }}>
+      <div className="row between"><h3 style={{ margin: 0 }}>Has the civic problem been properly resolved?</h3><Deadline deadline={complaint.confirmationDeadline} /></div>
       <BeforeAfter complaint={complaint} attempt={attempt} />
       <AiAdvisory ai={attempt.ai} />
       {attempt.validationStatus === 'FLAGGED' && <Alert type="warn">The evidence photo’s metadata could not be fully verified, so reviewers have flagged it. Please judge the photo by what you can see.</Alert>}
@@ -74,7 +74,7 @@ export default function DecisionPanel({ complaint, confirm, reject, onUpdated })
       <Modal open={open} onClose={() => !busy && setOpen(false)} title="What is still wrong?">
         <form onSubmit={doReject} noValidate>
           {err && <Alert type="error">{err}</Alert>}
-          <Field label="Explain the problem" htmlFor="reason" required><textarea id="reason" className="textarea" rows={4} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Most of the plastic is still on the bank, only the bags near the road were removed." /></Field>
+          <Field label="Explain the problem" htmlFor="reason" required><textarea id="reason" className="textarea" rows={4} maxLength={2000} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Debris and garbage are still scattered near the bins; only partial cleanup was completed." /></Field>
           <Field label="New photograph" hint="Required: show how the site looks now" required>
             {preview ? (
               <div className="previews" style={{ gridTemplateColumns: '160px' }}><div className="preview"><img src={preview} alt="New photograph preview" /><button type="button" aria-label="Remove photograph" onClick={() => { URL.revokeObjectURL(preview); setPreview(''); setFile(null); }}><X size={14} /></button></div></div>

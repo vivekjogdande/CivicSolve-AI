@@ -38,6 +38,7 @@ const createComplaintSchema = z.object({
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   landmark: z.preprocess(emptyToUndef, z.string().trim().max(150).optional()),
+  reporterName: z.preprocess(emptyToUndef, z.string().trim().max(100).optional()),
   isAnonymous: boolish.optional().default(false),
 });
 

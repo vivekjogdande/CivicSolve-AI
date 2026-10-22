@@ -32,15 +32,15 @@ export default function AuthorityLogin() {
   };
 
   return (
-    <AuthShell authority title="Authority sign-in" subtitle="For officers of departments responsible for the Indrayani River." aside={{ title: 'Investigate. Resolve. Prove it.', text: 'Manage assigned complaints, record actions, and submit verified cleanup evidence for citizens to confirm.' }}>
+    <AuthShell authority title="Authority sign-in" subtitle="For officers and administrators of municipal and civic departments." aside={{ title: 'Investigate. Resolve. Prove it.', text: 'Manage assigned grievances, record actions, and submit verified resolution evidence for citizens to confirm.' }}>
       <div className="row" style={{ marginBottom: 12 }}><span className="chip"><Landmark size={14} /> Official use</span></div>
       <form onSubmit={submit} noValidate>
         {err && <Alert type="error">{err}</Alert>}
         <Field label="Official email" htmlFor="email" error={errs.email}><input id="email" type="email" className={`input ${errs.email ? 'invalid' : ''}`} autoComplete="username" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
         <Field label="Password" htmlFor="password" error={errs.password}><input id="password" type="password" className={`input ${errs.password ? 'invalid' : ''}`} autoComplete="current-password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>
-        <ButtonLoading type="submit" loading={busy} className="btn btn-river btn-block btn-lg">Sign in</ButtonLoading>
+        <ButtonLoading type="submit" loading={busy} className="btn btn-primary btn-block btn-lg" style={{ background: 'var(--teal-600)', borderColor: 'var(--teal-500)' }}>Sign in</ButtonLoading>
       </form>
-      <p className="small muted" style={{ marginTop: 16 }}>Authority accounts are created by a RiverCare administrator and cannot be self-registered. Contact your department administrator for access.</p>
+      <p className="small muted" style={{ marginTop: 16 }}>Authority accounts are created by a CivicSolve AI administrator and cannot be self-registered. Contact your department administrator for access.</p>
       <p className="small"><Link to="/portals">Back to portal selection</Link></p>
     </AuthShell>
   );

@@ -13,7 +13,20 @@ const STATUS = {
   ESCALATED: 'ESCALATED',
 };
 
-const CATEGORIES = [
+// Civic Issue Categories
+const CIVIC_CATEGORIES = [
+  'GARBAGE_ACCUMULATION',
+  'POTHOLES_ROAD_DAMAGE',
+  'STREETLIGHT_FAULT',
+  'WATER_LEAKAGE',
+  'SEWAGE_OVERFLOW',
+  'OPEN_MANHOLE',
+  'ENVIRONMENTAL_POLLUTION',
+  'PUBLIC_FACILITY_DAMAGE',
+];
+
+// Preserved for backward compatibility with existing tests and records
+const LEGACY_CATEGORIES = [
   'PLASTIC_WASTE',
   'SEWAGE_DISCHARGE',
   'INDUSTRIAL_WASTE',
@@ -23,12 +36,55 @@ const CATEGORIES = [
   'OTHER',
 ];
 
+const CATEGORIES = [...CIVIC_CATEGORIES, ...LEGACY_CATEGORIES];
+
+const CATEGORY_LABELS = {
+  GARBAGE_ACCUMULATION: 'Garbage Accumulation & Solid Waste',
+  POTHOLES_ROAD_DAMAGE: 'Potholes & Road Damage',
+  STREETLIGHT_FAULT: 'Damaged Streetlights & Electrical Hazard',
+  WATER_LEAKAGE: 'Water Pipe Leakage & Supply Failure',
+  SEWAGE_OVERFLOW: 'Sewage Overflow & Drainage Blockage',
+  OPEN_MANHOLE: 'Open Manholes & Safety Hazards',
+  ENVIRONMENTAL_POLLUTION: 'Environmental & River Pollution',
+  PUBLIC_FACILITY_DAMAGE: 'Public Infrastructure Damage',
+  PLASTIC_WASTE: 'Plastic Waste',
+  SEWAGE_DISCHARGE: 'Sewage Discharge',
+  INDUSTRIAL_WASTE: 'Industrial Effluent',
+  CHEMICAL_POLLUTION: 'Chemical Pollution',
+  SOLID_WASTE: 'Solid Waste',
+  DEAD_FISH_WILDLIFE: 'Wildlife & Aquatic Impact',
+  OTHER: 'Other Civic Issue',
+};
+
 const SEVERITIES = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
-const AI_OUTCOMES = ['POLLUTION_REDUCED', 'POLLUTION_STILL_VISIBLE', 'UNCERTAIN', 'MODEL_UNAVAILABLE'];
+const COMPARISON_STATUSES = [
+  'IMPROVED',
+  'PARTIALLY_IMPROVED',
+  'NO_CLEAR_IMPROVEMENT',
+  'WORSENED',
+  'INCONCLUSIVE',
+  'IDENTICAL_IMAGE',
+  'MODEL_UNAVAILABLE',
+];
 
-// Default routing of a new complaint to a department code
+const AI_OUTCOMES = [
+  ...COMPARISON_STATUSES,
+  'POLLUTION_REDUCED',
+  'POLLUTION_STILL_VISIBLE',
+  'UNCERTAIN',
+];
+
+// Routing of complaints to department codes
 const CATEGORY_DEPARTMENT = {
+  GARBAGE_ACCUMULATION: 'MUNICIPAL',
+  POTHOLES_ROAD_DAMAGE: 'PWD',
+  STREETLIGHT_FAULT: 'ELECTRICITY',
+  WATER_LEAKAGE: 'WATER',
+  SEWAGE_OVERFLOW: 'WATER',
+  OPEN_MANHOLE: 'MUNICIPAL',
+  ENVIRONMENTAL_POLLUTION: 'MPCB',
+  PUBLIC_FACILITY_DAMAGE: 'MUNICIPAL',
   PLASTIC_WASTE: 'MUNICIPAL',
   SOLID_WASTE: 'MUNICIPAL',
   SEWAGE_DISCHARGE: 'MUNICIPAL',
@@ -38,4 +94,15 @@ const CATEGORY_DEPARTMENT = {
   OTHER: 'MUNICIPAL',
 };
 
-module.exports = { ROLES, AUTHORITY_ROLES, STATUS, CATEGORIES, SEVERITIES, AI_OUTCOMES, CATEGORY_DEPARTMENT };
+module.exports = {
+  ROLES,
+  AUTHORITY_ROLES,
+  STATUS,
+  CIVIC_CATEGORIES,
+  CATEGORIES,
+  CATEGORY_LABELS,
+  SEVERITIES,
+  COMPARISON_STATUSES,
+  AI_OUTCOMES,
+  CATEGORY_DEPARTMENT,
+};

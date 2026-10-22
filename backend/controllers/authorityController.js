@@ -150,4 +150,36 @@ const departments = asyncHandler(async (_req, res) => {
   res.json({ success: true, data: { departments: rows.map((d) => ({ id: d._id, name: d.name, code: d.code })) } });
 });
 
-module.exports = { loadComplaint, summary, charts, list, seniorQueue, detail, assign, setStatus, addNote, escalate, submitResolution, aiCompare, completeReview, officers, departments };
+const { matchResponders } = require('../services/civicAiService');
+
+const getRecommendedResponders = asyncHandler(async (req, res) => {
+  const c = req.complaint;
+  const [lng, lat] = c.location.coordinates;
+  const recommendations = await matchResponders({
+    complaintId: c.complaintId,
+    lat,
+    lng,
+    category: c.category,
+    severity: c.severity,
+  });
+  res.json({ success: true, data: { recommendations } });
+});
+
+module.exports = {
+  loadComplaint,
+  summary,
+  charts,
+  list,
+  seniorQueue,
+  detail,
+  assign,
+  setStatus,
+  addNote,
+  escalate,
+  submitResolution,
+  aiCompare,
+  completeReview,
+  officers,
+  departments,
+  getRecommendedResponders,
+};

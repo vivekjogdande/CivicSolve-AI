@@ -10,6 +10,7 @@ const { logEvent } = require('./auditService');
 const { notifyUser, notifyDepartment, notifySeniorOfficers } = require('./notificationService');
 const { extractMetadata, evaluateEvidence } = require('./evidenceService');
 const { compareImages } = require('./ollamaService');
+const { analyzeComplaint } = require('./civicAiService');
 
 const STATUS_LABEL = {
   SUBMITTED: 'Submitted',
@@ -33,18 +34,42 @@ async function createComplaint({ data, files, user }) {
   const deptCode = CATEGORY_DEPARTMENT[data.category];
   const dept = deptCode ? await Department.findOne({ code: deptCode, isActive: true }) : null;
 
+  let intakeAi = null;
+  try {
+    intakeAi = await analyzeComplaint({
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      severity: data.severity,
+    });
+  } catch (_e) {
+    // Non-blocking fallback
+  }
+
+  const effectiveSeverity = data.severity || (intakeAi ? intakeAi.priority : 'MEDIUM');
+
   const doc = {
     complaintId: generateComplaintId(),
     title: data.title,
     description: data.description,
     category: data.category,
-    severity: data.severity || 'MEDIUM',
+    severity: effectiveSeverity,
     landmark: data.landmark || undefined,
+    reporterName: data.reporterName ? String(data.reporterName).trim().slice(0, 100) : (user ? user.name : undefined),
     location: { type: 'Point', coordinates: [data.lng, data.lat] },
     isAnonymous,
     reporter: user ? user._id : undefined,
     department: dept ? dept._id : undefined,
     media: files.map((f) => f.media),
+    intakeAiAnalysis: intakeAi
+      ? {
+          ...intakeAi,
+          suggestedCategory: intakeAi.category || intakeAi.suggestedCategory,
+          suggestedPriority: intakeAi.priority || intakeAi.suggestedPriority,
+          category: intakeAi.category || intakeAi.suggestedCategory,
+          priority: intakeAi.priority || intakeAi.suggestedPriority,
+        }
+      : undefined,
   };
   if (isAnonymous) {
     token = generateConfirmationToken();
@@ -222,10 +247,24 @@ async function runAiComparison(complaintMongoId, attemptId, byUser) {
   if (!attempt || !attempt.evidence) throw badRequest('No resolution attempt with evidence to compare.');
   const before = complaint.media.find((m) => m.kind === 'image');
   if (!before) throw badRequest('The complaint has no original photograph to compare against.');
-  const ai = await compareImages(before.url, attempt.evidence.url);
+  const ai = await compareImages({
+    beforeUrl: before.url,
+    afterUrl: attempt.evidence.url,
+    complaintTitle: complaint.title,
+    complaintDescription: complaint.description,
+    complaintCategory: complaint.category,
+    attemptDescription: attempt.description,
+  });
   attempt.ai = { ...ai, comparedBy: byUser ? byUser._id : undefined };
   await complaint.save();
-  await logEvent({ complaint, actor: byUser || null, actorType: byUser ? 'AUTHORITY' : 'SYSTEM', action: 'AI_COMPARISON', message: `AI comparison (advisory): ${ai.outcome}`, isPublic: false });
+  await logEvent({
+    complaint,
+    actor: byUser || null,
+    actorType: byUser ? 'AUTHORITY' : 'SYSTEM',
+    action: 'AI_COMPARISON',
+    message: `AI comparison (advisory): ${ai.comparisonStatus || ai.outcome}`,
+    isPublic: false,
+  });
   return attempt.ai;
 }
 

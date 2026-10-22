@@ -31,8 +31,12 @@ const requireAuth = asyncHandler(async (req, _res, next) => {
 
 /** Attaches req.user when a valid token is present; anonymous callers pass through. */
 const optionalAuth = asyncHandler(async (req, _res, next) => {
-  const user = await loadUser(req);
-  if (user) req.user = user;
+  try {
+    const user = await loadUser(req);
+    if (user) req.user = user;
+  } catch (_e) {
+    // For optional auth routes, invalid or expired tokens are ignored so anonymous flows never break
+  }
   next();
 });
 

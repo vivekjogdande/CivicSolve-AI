@@ -1,1 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1f4d3a"/><path d="M10 40c6-6 10-6 16 0s10 6 16 0 8-5 12-3" fill="none" stroke="#7fc4dc" stroke-width="5" stroke-linecap="round"/><path d="M10 28c6-6 10-6 16 0s10 6 16 0 8-5 12-3" fill="none" stroke="#e4ece0" stroke-width="5" stroke-linecap="round"/><path d="M32 8c6 7 9 11 9 15a9 9 0 0 1-18 0c0-4 3-8 9-15z" fill="#a9c7a0"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="civicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B192C"/>
+      <stop offset="100%" stop-color="#1E3E62"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#civicGrad)"/>
+  <!-- Shield outline -->
+  <path d="M32 10 L48 16 V28 C48 40 32 50 32 50 C32 50 16 40 16 28 V16 Z" fill="none" stroke="url(#tealGrad)" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Verified check with civic spark -->
+  <path d="M25 29 L30 34 L39 23" fill="none" stroke="#10B981" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32" cy="18" r="2" fill="#06B6D4"/>
+</svg>

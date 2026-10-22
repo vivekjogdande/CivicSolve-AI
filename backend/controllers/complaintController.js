@@ -101,8 +101,46 @@ const decide = (decision, via) =>
     res.json({ success: true, data: { complaint: views.citizenDetail(c, await timeline(c), via === 'TOKEN' ? 'TOKEN' : 'OWNER') } });
   });
 
+const { analyzeComplaint, checkDuplicates } = require('../services/civicAiService');
+
+const aiAnalyze = asyncHandler(async (req, res) => {
+  const title = (req.body && req.body.title ? String(req.body.title) : '').trim();
+  const description = (req.body && req.body.description ? String(req.body.description) : '').trim();
+  const category = (req.body && req.body.category ? String(req.body.category) : '').trim();
+  const severity = (req.body && req.body.severity ? String(req.body.severity) : '').trim();
+
+  if (!title && !description) {
+    throw badRequest('Please provide a problem title or description for AI analysis.');
+  }
+
+  const analysis = await analyzeComplaint({ title, description, category, severity });
+  res.json({ success: true, data: { analysis } });
+});
+
+const getDuplicates = asyncHandler(async (req, res) => {
+  const { lat, lng, category, title, description, excludeComplaintId } = req.query;
+  const duplicates = await checkDuplicates({
+    lat: Number(lat),
+    lng: Number(lng),
+    category,
+    title,
+    description,
+    excludeComplaintId,
+  });
+  res.json({ success: true, data: { duplicates } });
+});
+
 module.exports = {
-  loadAnonymous, loadOwned, create, listMine, mySummary, trackPublic, detailOwned, detailAnonymous,
+  loadAnonymous,
+  loadOwned,
+  create,
+  listMine,
+  mySummary,
+  trackPublic,
+  detailOwned,
+  detailAnonymous,
+  aiAnalyze,
+  getDuplicates,
   confirmOwned: decide('CONFIRMED', 'ACCOUNT'),
   rejectOwned: decide('REJECTED', 'ACCOUNT'),
   confirmAnonymous: decide('CONFIRMED', 'TOKEN'),

@@ -12,10 +12,14 @@ const User = require('../models/User');
 const { ROLES } = require('../utils/constants');
 
 const DEPARTMENTS = [
-  { code: 'MUNICIPAL', name: 'Municipal Corporation - Environment Department', description: 'Solid waste, plastic waste and sewage on urban river stretches' },
-  { code: 'MPCB', name: 'Maharashtra Pollution Control Board', description: 'Industrial effluent, chemical pollution and wildlife incidents' },
-  { code: 'WRD', name: 'Water Resources Department', description: 'River channel, embankment and water quality coordination' },
-  { code: 'GRAMPANCHAYAT', name: 'Gram Panchayat / Zilla Parishad', description: 'Rural river stretches and village sanitation' },
+  { code: 'MUNICIPAL', name: 'Municipal Corporation - Solid Waste & Sanitation', description: 'Solid waste management, garbage accumulation, open manholes and public hygiene' },
+  { code: 'PWD', name: 'Public Works Department (PWD) - Roads & Bridges', description: 'Pothole repairs, asphalt resurfacing, road cave-ins and civic infrastructure' },
+  { code: 'WATER', name: 'Water Supply & Sewerage Drainage Board', description: 'Pipeline leakages, sewage overflow, storm drain unclogging and water distribution' },
+  { code: 'ELECTRICITY', name: 'Electricity & Streetlight Infrastructure Board', description: 'Damaged streetlights, live wire hazards, transformer faults and public illumination' },
+  { code: 'MPCB', name: 'Pollution Control & Environmental Safety Board', description: 'Industrial effluent, toxic dumping, water body pollution and wildlife incidents' },
+  { code: 'DISASTER', name: 'Disaster Management & Civic Safety Response', description: 'Emergency public safety hazards, structural collapse risks, and rapid response' },
+  { code: 'WRD', name: 'Water Resources & Canal Department', description: 'River channels, embankments, canals and water quality coordination' },
+  { code: 'GRAMPANCHAYAT', name: 'Gram Panchayat / Zilla Parishad', description: 'Rural civic issues, rural road connectivity and village sanitation' },
 ];
 
 (async () => {
