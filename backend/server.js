@@ -7,7 +7,8 @@ async function main() {
   assertEnv();
   await connectDB();
   startScheduler();
-  app.listen(env.port, () => console.log(`[server] CivicSolve AI API listening on http://localhost:${env.port}`));
+  const host = '0.0.0.0';
+  app.listen(env.port, host, () => console.log(`[server] CivicSolve AI API listening on http://${host}:${env.port}`));
 }
 
 main().catch((err) => {

@@ -27,7 +27,17 @@ export default function CitizenLogin() {
       await loginCitizen(f.email, f.password);
       const from = loc.state && loc.state.from && !loc.state.from.startsWith('/authority') && !loc.state.from.startsWith('/admin') ? loc.state.from : '/dashboard';
       navigate(from, { replace: true });
-    } catch (x) { setErr(x.message); } finally { setBusy(false); }
+    } catch (x) {
+      if (x.status === 404) {
+        setErr('Citizen authentication endpoint not found (404). Please ensure the backend is running and the API URL is configured correctly.');
+      } else if (x.status === 401) {
+        setErr(x.message || 'Incorrect email or password for the citizen portal.');
+      } else {
+        setErr(x.message || 'Unable to log in. Please verify your connection and try again.');
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -41,8 +51,8 @@ export default function CitizenLogin() {
     >
       <form onSubmit={submit} noValidate>
         {err && <Alert type="error">{err}</Alert>}
-        <Field label="Email" htmlFor="email" error={errs.email}><input id="email" type="email" className={`input ${errs.email ? 'invalid' : ''}`} autoComplete="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></Field>
-        <Field label="Password" htmlFor="password" error={errs.password}><input id="password" type="password" className={`input ${errs.password ? 'invalid' : ''}`} autoComplete="current-password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} /></Field>
+        <Field label="Email" htmlFor="email" error={errs.email}><input id="email" type="email" className={`input ${errs.email ? 'invalid' : ''}`} autoComplete="email" value={f.email} onChange={(e) => { setF({ ...f, email: e.target.value }); if (err) setErr(''); }} /></Field>
+        <Field label="Password" htmlFor="password" error={errs.password}><input id="password" type="password" className={`input ${errs.password ? 'invalid' : ''}`} autoComplete="current-password" value={f.password} onChange={(e) => { setF({ ...f, password: e.target.value }); if (err) setErr(''); }} /></Field>
         <ButtonLoading type="submit" loading={busy} className="btn btn-primary btn-block btn-lg">Log in</ButtonLoading>
       </form>
       <p className="small" style={{ marginTop: 16 }}>New here? <Link to="/citizen/register">Create an account</Link> · <Link to="/report">Report anonymously</Link></p>

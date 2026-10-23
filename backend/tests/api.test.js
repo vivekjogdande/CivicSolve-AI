@@ -6,10 +6,32 @@ const app = require('../app');
 
 // These tests exercise validation, authentication and routing, which all run before any database access.
 describe('API guards (no database needed)', () => {
-  test('health check', async () => {
-    const r = await request(app).get('/api/health');
-    expect(r.status).toBe(200);
-    expect(r.body.success).toBe(true);
+  test('health check on /api/health and /health alias', async () => {
+    const r1 = await request(app).get('/api/health');
+    expect(r1.status).toBe(200);
+    expect(r1.body.success).toBe(true);
+
+    const r2 = await request(app).get('/health');
+    expect(r2.status).toBe(200);
+    expect(r2.body.success).toBe(true);
+  });
+
+  test('root endpoint / returns clean response without 404', async () => {
+    const r = await request(app).get('/');
+    expect([200, 304]).toContain(r.status);
+    if (r.headers['content-type']?.includes('application/json')) {
+      expect(r.body.success).toBe(true);
+    }
+  });
+
+  test('normalizes double slashes and duplicate /api prefixes', async () => {
+    const r1 = await request(app).get('//api/health');
+    expect(r1.status).toBe(200);
+    expect(r1.body.success).toBe(true);
+
+    const r2 = await request(app).get('/api/api/health');
+    expect(r2.status).toBe(200);
+    expect(r2.body.success).toBe(true);
   });
 
   test('unknown API route returns a consistent JSON 404', async () => {

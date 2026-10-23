@@ -30,6 +30,9 @@ function errorHandler(err, req, res, _next) {
   } else if (err && err.type === 'entity.parse.failed') {
     status = 400;
     message = 'Malformed JSON body';
+  } else if (err && (err.name === 'MongooseServerSelectionError' || err.name === 'MongoNetworkError' || err.name === 'MongoTimeoutError')) {
+    status = 503;
+    message = 'Database service temporarily unavailable. Please verify MongoDB is running.';
   }
 
   if (status >= 500) console.error('[error]', req.method, req.originalUrl, err);

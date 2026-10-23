@@ -17,7 +17,8 @@ const register = asyncHandler(async (req, res) => {
 
 const loginFor = (allowedRoles, portal) =>
   asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const email = (req.body.email || '').trim().toLowerCase();
+    const { password } = req.body;
     const user = await User.findOne({ email }).select('+passwordHash').populate('department');
     const ok = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
     if (!user || !ok || !user.isActive) throw unauthorized('Incorrect email or password');

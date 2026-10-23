@@ -14,5 +14,12 @@ export default defineConfig({
       '/uploads': { target: backend, changeOrigin: true },
     },
   },
+  preview: {
+    port: 4173,
+    proxy: {
+      '/api': { target: backend, changeOrigin: true },
+      '/uploads': { target: backend, changeOrigin: true },
+    },
+  },
   build: { chunkSizeWarningLimit: 900 },
 });
