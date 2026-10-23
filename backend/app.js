@@ -23,37 +23,71 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org', 'https://i.ytimg.com', 'https://images.unsplash.com'],
         frameSrc: ["'self'", 'https://www.youtube-nocookie.com', 'https://www.youtube.com'],
-        connectSrc: ["'self'", 'http://localhost:*', 'http://127.0.0.1:*', 'https://*.tile.openstreetmap.org'],
+        connectSrc: [
+          "'self'",
+          'http://localhost:*',
+          'http://127.0.0.1:*',
+          'https://*.tile.openstreetmap.org',
+          'https://civic-solve-ai-eight.vercel.app',
+          'https://*.vercel.app',
+          'https://civicsolve-ai-ccwc.onrender.com',
+        ],
         mediaSrc: ["'self'", 'blob:'],
       },
     },
   })
 );
+
 const allowedOrigins = (env.clientOrigin || '')
   .split(',')
   .map((o) => o.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (curl, server-to-server, native apps)
-      if (!origin) return callback(null, true);
-      const normalized = origin.trim().replace(/\/+$/, '');
-      if (allowedOrigins.includes('*') || allowedOrigins.includes(normalized)) {
-        return callback(null, true);
-      }
-      // Allow localhost and 127.0.0.1 on any port during development
-      if (env.nodeEnv === 'development' || /^https?:\/\/localhost(:\d+)?$/.test(normalized) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(normalized)) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
-    credentials: false,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  })
-);
+// Ensure the canonical deployed Vercel domain and standard dev ports are always permitted
+const defaultAllowed = [
+  'https://civic-solve-ai-eight.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:4173',
+];
+defaultAllowed.forEach((d) => {
+  if (!allowedOrigins.includes(d)) allowedOrigins.push(d);
+});
+
+const isOriginAllowed = (origin) => {
+  // Allow requests with no origin (curl, server-to-server, native apps)
+  if (!origin) return true;
+  const normalized = origin.trim().replace(/\/+$/, '');
+  if (allowedOrigins.includes('*') || allowedOrigins.includes(normalized)) {
+    return true;
+  }
+  // Allow any Vercel preview or production deployment matching the project name pattern
+  if (/^https:\/\/civic-solve-ai(-[a-z0-9-]+)?\.vercel\.app$/.test(normalized)) {
+    return true;
+  }
+  // Allow localhost and 127.0.0.1 on any port
+  if (/^https?:\/\/localhost(:\d+)?$/.test(normalized) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(normalized)) {
+    return true;
+  }
+  return false;
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: false,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 if (env.nodeEnv !== 'test') {
   // Request bodies and query strings are never logged, so confirmation tokens cannot leak into logs.

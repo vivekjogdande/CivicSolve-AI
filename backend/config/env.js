@@ -11,7 +11,9 @@ const env = {
   mongoUri: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/CivicSolveDB',
   jwtSecret: process.env.JWT_SECRET || '',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '2h',
-  clientOrigin: process.env.CLIENT_ORIGIN || 'http://localhost:5173,http://localhost:5174,http://localhost:5175',
+  clientOrigin:
+    process.env.CLIENT_ORIGIN ||
+    'http://localhost:5173,http://localhost:5174,http://localhost:5175,http://localhost:4173,https://civic-solve-ai-eight.vercel.app',
   ollamaBaseUrl: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
   ollamaModel: process.env.OLLAMA_VISION_MODEL || 'llava',
   ollamaTimeoutMs: num(process.env.OLLAMA_TIMEOUT_MS, 15000),

@@ -130,4 +130,49 @@ describe('API guards (no database needed)', () => {
     const r = await request(app).post('/api/auth/citizen/login').set('Content-Type', 'application/json').send('{bad json');
     expect(r.status).toBe(400);
   });
+
+  describe('CORS and Preflight guards', () => {
+    test('allows preflight OPTIONS from production Vercel deployment', async () => {
+      const res = await request(app)
+        .options('/api/auth/authority/login')
+        .set('Origin', 'https://civic-solve-ai-eight.vercel.app')
+        .set('Access-Control-Request-Method', 'POST')
+        .set('Access-Control-Request-Headers', 'Content-Type, Authorization');
+
+      expect(res.status).toBe(204);
+      expect(res.headers['access-control-allow-origin']).toBe('https://civic-solve-ai-eight.vercel.app');
+      expect(res.headers['access-control-allow-methods']).toMatch(/POST/);
+      expect(res.headers['access-control-allow-headers']).toMatch(/Content-Type/);
+    });
+
+    test('allows preflight OPTIONS from Vercel preview deployments', async () => {
+      const res = await request(app)
+        .options('/api/auth/authority/login')
+        .set('Origin', 'https://civic-solve-ai-git-fix-login.vercel.app')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(res.status).toBe(204);
+      expect(res.headers['access-control-allow-origin']).toBe('https://civic-solve-ai-git-fix-login.vercel.app');
+    });
+
+    test('allows requests from local development origins', async () => {
+      const res = await request(app)
+        .options('/api/health')
+        .set('Origin', 'http://localhost:5174')
+        .set('Access-Control-Request-Method', 'GET');
+
+      expect(res.status).toBe(204);
+      expect(res.headers['access-control-allow-origin']).toBe('http://localhost:5174');
+    });
+
+    test('disallows unauthorized origins', async () => {
+      const res = await request(app)
+        .options('/api/auth/authority/login')
+        .set('Origin', 'https://malicious-attacker.com')
+        .set('Access-Control-Request-Method', 'POST');
+
+      expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    });
+  });
 });
+
