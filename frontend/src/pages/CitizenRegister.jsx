@@ -46,14 +46,73 @@ export default function CitizenRegister() {
     <AuthShell title="Create your citizen account" subtitle="Track every complaint you file and confirm civic repairs." aside={{ title: 'Your reports, in one place', text: 'With an account you can follow complaints from your dashboard and confirm or dispute resolution proof. You can still report anonymously without an account.' }}>
       <form onSubmit={submit} noValidate>
         {err && <Alert type="error">{err}</Alert>}
-        <Field label="Full name" htmlFor="name" error={errs.name} required><input id="name" className={`input ${errs.name ? 'invalid' : ''}`} autoComplete="name" value={f.name} onChange={on('name')} /></Field>
-        <Field label="Email" htmlFor="email" error={errs.email} required><input id="email" type="email" className={`input ${errs.email ? 'invalid' : ''}`} autoComplete="email" value={f.email} onChange={on('email')} /></Field>
-        <Field label="Phone (optional)" htmlFor="phone" error={errs.phone}><input id="phone" type="tel" className={`input ${errs.phone ? 'invalid' : ''}`} autoComplete="tel" value={f.phone} onChange={on('phone')} /></Field>
-        <Field label="Password" htmlFor="password" error={errs.password} hint="At least 8 characters, with a letter and a number" required><input id="password" type="password" className={`input ${errs.password ? 'invalid' : ''}`} autoComplete="new-password" value={f.password} onChange={on('password')} /></Field>
-        <Field label="Confirm password" htmlFor="confirm" error={errs.confirmPassword} required><input id="confirm" type="password" className={`input ${errs.confirmPassword ? 'invalid' : ''}`} autoComplete="new-password" value={f.confirmPassword} onChange={on('confirmPassword')} /></Field>
+        <Field label="Full name" htmlFor="name" error={errs.name} required>
+          <input
+            id="name"
+            className={`input ${errs.name ? 'invalid' : ''}`}
+            autoComplete="name"
+            placeholder="Enter your full name"
+            aria-required="true"
+            aria-invalid={Boolean(errs.name)}
+            value={f.name}
+            onChange={on('name')}
+          />
+        </Field>
+        <Field label="Email" htmlFor="email" error={errs.email} required>
+          <input
+            id="email"
+            type="email"
+            className={`input ${errs.email ? 'invalid' : ''}`}
+            autoComplete="email"
+            placeholder="name@example.com"
+            aria-required="true"
+            aria-invalid={Boolean(errs.email)}
+            value={f.email}
+            onChange={on('email')}
+          />
+        </Field>
+        <Field label="Phone (optional)" htmlFor="phone" error={errs.phone}>
+          <input
+            id="phone"
+            type="tel"
+            className={`input ${errs.phone ? 'invalid' : ''}`}
+            autoComplete="tel"
+            placeholder="+91 98765 43210"
+            aria-invalid={Boolean(errs.phone)}
+            value={f.phone}
+            onChange={on('phone')}
+          />
+        </Field>
+        <Field label="Password" htmlFor="password" error={errs.password} hint="At least 8 characters, with a letter and a number" required>
+          <input
+            id="password"
+            type="password"
+            className={`input ${errs.password ? 'invalid' : ''}`}
+            autoComplete="new-password"
+            placeholder="••••••••"
+            aria-required="true"
+            aria-invalid={Boolean(errs.password)}
+            value={f.password}
+            onChange={on('password')}
+          />
+        </Field>
+        <Field label="Confirm password" htmlFor="confirm" error={errs.confirmPassword} required>
+          <input
+            id="confirm"
+            type="password"
+            className={`input ${errs.confirmPassword ? 'invalid' : ''}`}
+            autoComplete="new-password"
+            placeholder="••••••••"
+            aria-required="true"
+            aria-invalid={Boolean(errs.confirmPassword)}
+            value={f.confirmPassword}
+            onChange={on('confirmPassword')}
+          />
+        </Field>
         <ButtonLoading type="submit" loading={busy} className="btn btn-primary btn-block btn-lg">Create account</ButtonLoading>
       </form>
       <p className="small" style={{ marginTop: 16 }}>Already registered? <Link to="/citizen/login">Log in</Link> · <Link to="/portals">Other portals</Link></p>
     </AuthShell>
   );
+
 }

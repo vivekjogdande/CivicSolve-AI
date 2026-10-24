@@ -13,12 +13,53 @@
  *   node scripts/create-admin.js --email=officer.pwd@civicsolve.gov --password=NewSecurePass123 --role=OFFICER --dept=PWD
  */
 const bcrypt = require('bcryptjs');
+const readline = require('readline');
 const mongoose = require('mongoose');
 const { connectDB } = require('../config/db');
 const { env } = require('../config/env');
 const User = require('../models/User');
 const Department = require('../models/Department');
 const { ROLES, AUTHORITY_ROLES } = require('../utils/constants');
+
+function askQuestion(query, hidden = false) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    if (hidden && process.stdin.isTTY) {
+      process.stdout.write(query);
+      process.stdin.setRawMode(true);
+      process.stdin.resume();
+      let input = '';
+      process.stdin.on('data', function handler(char) {
+        const c = char.toString('utf8');
+        if (c === '\n' || c === '\r' || c === '\u0004') {
+          process.stdin.setRawMode(false);
+          process.stdin.removeListener('data', handler);
+          process.stdout.write('\n');
+          rl.close();
+          resolve(input.trim());
+        } else if (c === '\u0003') {
+          process.exit(1);
+        } else if (c === '\b' || c === '\x7f') {
+          if (input.length > 0) {
+            input = input.slice(0, -1);
+            process.stdout.write('\b \b');
+          }
+        } else {
+          input += c;
+          process.stdout.write('*');
+        }
+      });
+    } else {
+      rl.question(query, (ans) => {
+        rl.close();
+        resolve(ans.trim());
+      });
+    }
+  });
+}
 
 function parseArgs() {
   const args = {};
@@ -34,11 +75,18 @@ function parseArgs() {
 async function main() {
   const args = parseArgs();
 
-  const email = (args.email || env.adminEmail || '').trim().toLowerCase();
-  const password = args.password || env.adminPassword;
-  const name = args.name || env.adminName || 'CivicSolve Administrator';
-  const role = (args.role || ROLES.ADMIN).toUpperCase();
+  let email = (args.email || env.adminEmail || '').trim().toLowerCase();
+  let password = args.password || env.adminPassword;
+  let name = args.name || env.adminName || 'CivicSolve Administrator';
+  let role = (args.role || ROLES.ADMIN).toUpperCase();
   const deptCode = args.dept ? args.dept.toUpperCase() : null;
+
+  if (!email && process.stdin.isTTY) {
+    email = (await askQuestion('Enter authority email: ')).trim().toLowerCase();
+  }
+  if (!password && process.stdin.isTTY) {
+    password = await askQuestion('Enter authority password (min 8 chars): ', true);
+  }
 
   if (!email || !email.includes('@')) {
     console.error('❌ Error: Valid email is required. Set ADMIN_EMAIL in .env or pass --email=user@domain.com');
@@ -49,6 +97,7 @@ async function main() {
     console.error('❌ Error: Password must be at least 8 characters. Set ADMIN_PASSWORD in .env or pass --password=...');
     process.exit(1);
   }
+
 
   if (!AUTHORITY_ROLES.includes(role)) {
     console.error(`❌ Error: Role must be one of authority roles: ${AUTHORITY_ROLES.join(', ')}`);

@@ -51,9 +51,34 @@ export default function CitizenLogin() {
     >
       <form onSubmit={submit} noValidate>
         {err && <Alert type="error">{err}</Alert>}
-        <Field label="Email" htmlFor="email" error={errs.email}><input id="email" type="email" className={`input ${errs.email ? 'invalid' : ''}`} autoComplete="email" value={f.email} onChange={(e) => { setF({ ...f, email: e.target.value }); if (err) setErr(''); }} /></Field>
-        <Field label="Password" htmlFor="password" error={errs.password}><input id="password" type="password" className={`input ${errs.password ? 'invalid' : ''}`} autoComplete="current-password" value={f.password} onChange={(e) => { setF({ ...f, password: e.target.value }); if (err) setErr(''); }} /></Field>
+        <Field label="Email" htmlFor="email" error={errs.email} required>
+          <input
+            id="email"
+            type="email"
+            className={`input ${errs.email ? 'invalid' : ''}`}
+            autoComplete="email"
+            placeholder="name@example.com"
+            aria-required="true"
+            aria-invalid={Boolean(errs.email)}
+            value={f.email}
+            onChange={(e) => { setF({ ...f, email: e.target.value }); if (err) setErr(''); }}
+          />
+        </Field>
+        <Field label="Password" htmlFor="password" error={errs.password} required>
+          <input
+            id="password"
+            type="password"
+            className={`input ${errs.password ? 'invalid' : ''}`}
+            autoComplete="current-password"
+            placeholder="••••••••"
+            aria-required="true"
+            aria-invalid={Boolean(errs.password)}
+            value={f.password}
+            onChange={(e) => { setF({ ...f, password: e.target.value }); if (err) setErr(''); }}
+          />
+        </Field>
         <ButtonLoading type="submit" loading={busy} className="btn btn-primary btn-block btn-lg">Log in</ButtonLoading>
+
       </form>
       <p className="small" style={{ marginTop: 16 }}>New here? <Link to="/citizen/register">Create an account</Link> · <Link to="/report">Report anonymously</Link></p>
       <p className="small muted">Officer? Use the <Link to="/authority/login">authority login</Link>.</p>
