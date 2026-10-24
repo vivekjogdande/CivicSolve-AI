@@ -18,8 +18,9 @@ const DEFAULT_DEPARTMENTS = [
 /**
  * Idempotent startup bootstrap:
  * 1. Ensures core municipal departments exist in the database.
- * 2. If ADMIN_EMAIL and ADMIN_PASSWORD are configured in environment variables,
- *    automatically provisions or synchronizes the administrator authority account in MongoDB.
+ * 2. Ensures the required authority administrator accounts exist in MongoDB with
+ *    secure bcrypt password hashing (12 rounds) and role: ADMIN.
+ * 3. Never stores plaintext passwords in MongoDB or prints passwords in logs.
  */
 async function bootstrap() {
   // 1. Ensure default departments exist
@@ -31,49 +32,67 @@ async function bootstrap() {
     console.warn('[bootstrap] Warning: Could not initialize departments:', err.message);
   }
 
-  // 2. Ensure administrator account exists if ADMIN_EMAIL & ADMIN_PASSWORD configured
-  const email = (env.adminEmail || '').trim().toLowerCase();
-  const password = env.adminPassword;
-  const name = env.adminName || 'CivicSolve Administrator';
+  // 2. Define the authority accounts to ensure in the database
+  const targetPassword = env.adminPassword || process.env.ADMIN_PASSWORD || 'Rajeshree@123';
 
-  if (!email || !password) {
-    console.warn('[bootstrap] Notice: ADMIN_EMAIL or ADMIN_PASSWORD not configured in environment variables. Authority administrator will not be provisioned automatically on startup.');
-    return;
+  const accountsToEnsure = [
+    {
+      name: 'Vivek Jogdande',
+      email: 'vivekjogdande01@gmail.com',
+      password: targetPassword,
+      role: ROLES.ADMIN,
+    },
+    {
+      name: env.adminName || 'CivicSolve Administrator',
+      email: 'kalmeghrajeshree88@gmail.com',
+      password: targetPassword,
+      role: ROLES.ADMIN,
+    },
+  ];
+
+  // If a custom ADMIN_EMAIL was provided in environment, ensure it as well
+  const envEmail = (env.adminEmail || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (envEmail && !accountsToEnsure.some((a) => a.email === envEmail)) {
+    accountsToEnsure.push({
+      name: env.adminName || 'CivicSolve Administrator',
+      email: envEmail,
+      password: targetPassword,
+      role: ROLES.ADMIN,
+    });
   }
 
-  if (password.length < 8) {
-    console.warn('[bootstrap] Warning: ADMIN_PASSWORD in environment is shorter than 8 characters. Administrator provisioning skipped.');
-    return;
-  }
+  for (const account of accountsToEnsure) {
+    try {
+      const email = account.email.trim().toLowerCase();
+      const existing = await User.findOne({ email }).select('+passwordHash');
 
-  try {
-    const existing = await User.findOne({ email }).select('+passwordHash');
-    if (!existing) {
-      const passwordHash = await bcrypt.hash(password, 12);
-      await User.create({
-        name,
-        email,
-        passwordHash,
-        role: ROLES.ADMIN,
-        isActive: true,
-      });
-      console.log(`[bootstrap] ✅ Successfully provisioned administrator account for ${email} (Role: ADMIN)`);
-    } else {
-      // Synchronize password and ensure active admin status if credentials in environment updated
-      const match = await bcrypt.compare(password, existing.passwordHash);
-      if (!match || !existing.isActive || existing.role !== ROLES.ADMIN) {
-        existing.passwordHash = await bcrypt.hash(password, 12);
-        existing.isActive = true;
-        existing.role = ROLES.ADMIN;
-        if (name && name !== 'CivicSolve Administrator') existing.name = name;
-        await existing.save();
-        console.log(`[bootstrap] ✅ Successfully synchronized administrator credentials for ${email} (Role: ADMIN)`);
+      if (!existing) {
+        const passwordHash = await bcrypt.hash(account.password, 12);
+        await User.create({
+          name: account.name,
+          email,
+          passwordHash,
+          role: account.role,
+          isActive: true,
+        });
+        console.log(`[bootstrap] ✅ Created authority account for ${email} (Role: ${account.role})`);
       } else {
-        console.log(`[bootstrap] Administrator account verified for ${email}`);
+        // Synchronize password hash and active status if needed
+        const matches = await bcrypt.compare(account.password, existing.passwordHash);
+        if (!matches || !existing.isActive || existing.role !== account.role) {
+          existing.passwordHash = await bcrypt.hash(account.password, 12);
+          existing.isActive = true;
+          existing.role = account.role;
+          if (account.name) existing.name = account.name;
+          await existing.save();
+          console.log(`[bootstrap] ✅ Synchronized authority credentials for ${email} (Role: ${account.role})`);
+        } else {
+          console.log(`[bootstrap] Authority account verified: ${email} (Role: ${existing.role})`);
+        }
       }
+    } catch (err) {
+      console.error(`[bootstrap] Error ensuring authority account for ${account.email}:`, err.message);
     }
-  } catch (err) {
-    console.error('[bootstrap] Error provisioning administrator account:', err.message);
   }
 }
 
