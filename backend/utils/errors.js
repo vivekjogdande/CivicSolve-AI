@@ -11,7 +11,9 @@ const unauthorized = (m = 'Authentication required') => new ApiError(401, m);
 const forbidden = (m = 'You do not have permission to do this') => new ApiError(403, m);
 const notFound = (m = 'Not found') => new ApiError(404, m);
 const conflict = (m) => new ApiError(409, m);
+const serviceUnavailable = (m = 'Service temporarily unavailable') => new ApiError(503, m);
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-module.exports = { ApiError, badRequest, unauthorized, forbidden, notFound, conflict, asyncHandler };
+module.exports = { ApiError, badRequest, unauthorized, forbidden, notFound, conflict, serviceUnavailable, asyncHandler };
+

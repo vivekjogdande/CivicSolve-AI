@@ -1,34 +1,85 @@
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { ROLES, AUTHORITY_ROLES } = require('../utils/constants');
 const { signToken } = require('../middleware/auth');
-const { asyncHandler, unauthorized, badRequest, conflict } = require('../utils/errors');
+const { asyncHandler, unauthorized, badRequest, conflict, serviceUnavailable } = require('../utils/errors');
 const { logEvent } = require('../services/auditService');
 
 // Compared against when the email is unknown, so response time does not reveal which emails exist.
 const DUMMY_HASH = bcrypt.hashSync('civicsolve-dummy-password', 12);
 
 const register = asyncHandler(async (req, res) => {
+  if (mongoose.connection.readyState !== 1) {
+    console.error(`[auth] citizen register aborted: database disconnected (readyState=${mongoose.connection.readyState})`);
+    throw serviceUnavailable('Database service is currently unavailable. Please check backend connection.');
+  }
   const { name, email, phone, password } = req.body;
-  if (await User.exists({ email })) throw conflict('An account with this email already exists');
-  const user = await User.create({ name, email, phone, passwordHash: await bcrypt.hash(password, 12), role: ROLES.CITIZEN });
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  if (await User.exists({ email: normalizedEmail })) {
+    console.warn('[auth] citizen register failed: reason=EMAIL_ALREADY_EXISTS');
+    throw conflict('An account with this email already exists');
+  }
+  const user = await User.create({
+    name,
+    email: normalizedEmail,
+    phone,
+    passwordHash: await bcrypt.hash(password, 12),
+    role: ROLES.CITIZEN,
+  });
+  console.log(`[auth] citizen registered successfully: role=${user.role}`);
   res.status(201).json({ success: true, data: { token: signToken(user), user: user.toSafeJSON() } });
 });
 
 const loginFor = (allowedRoles, portal) =>
   asyncHandler(async (req, res) => {
+    // Fail immediately if database is unavailable so connection errors are never masked as 401
+    if (mongoose.connection.readyState !== 1) {
+      console.error(`[auth] ${portal} login aborted: database disconnected (readyState=${mongoose.connection.readyState})`);
+      throw serviceUnavailable('Database service is currently unavailable. Please check backend connection.');
+    }
+
     const email = (req.body.email || '').trim().toLowerCase();
     const { password } = req.body;
     const user = await User.findOne({ email }).select('+passwordHash').populate('department');
     const ok = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
-    if (!user || !ok || !user.isActive) throw unauthorized('Incorrect email or password');
+
+    if (!user) {
+      // Diagnostic log without revealing sensitive details (email/password/hash are omitted)
+      console.warn(`[auth] ${portal} login failed: reason=ACCOUNT_NOT_FOUND portal=${portal}`);
+      throw unauthorized('Incorrect email or password');
+    }
+
+    if (!ok) {
+      console.warn(`[auth] ${portal} login failed: reason=INVALID_PASSWORD portal=${portal} role=${user.role}`);
+      throw unauthorized('Incorrect email or password');
+    }
+
+    if (!user.isActive) {
+      console.warn(`[auth] ${portal} login failed: reason=ACCOUNT_INACTIVE portal=${portal} role=${user.role}`);
+      throw unauthorized('Account is inactive. Please contact an administrator.');
+    }
+
     if (!allowedRoles.includes(user.role)) {
-      // Same message: never reveal that the email exists on the other portal.
+      console.warn(`[auth] ${portal} login failed: reason=ROLE_MISMATCH portal=${portal} accountRole=${user.role} expectedRoles=${allowedRoles.join(',')}`);
+      // Consistent error message to avoid portal/email enumeration
       throw unauthorized(`Incorrect email or password for the ${portal} portal`);
     }
-    user.lastLoginAt = new Date();
-    await user.save();
-    if (AUTHORITY_ROLES.includes(user.role)) await logEvent({ actor: user, actorType: user.role === ROLES.ADMIN ? 'ADMIN' : 'AUTHORITY', action: 'AUTHORITY_LOGIN', message: 'Authority login' });
+
+    console.log(`[auth] ${portal} login successful: role=${user.role}`);
+
+    // Update lastLoginAt safely without risking validation failures on populated references
+    await User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } });
+
+    if (AUTHORITY_ROLES.includes(user.role)) {
+      await logEvent({
+        actor: user,
+        actorType: user.role === ROLES.ADMIN ? 'ADMIN' : 'AUTHORITY',
+        action: 'AUTHORITY_LOGIN',
+        message: 'Authority login',
+      });
+    }
+
     res.json({ success: true, data: { token: signToken(user), user: user.toSafeJSON() } });
   });
 
