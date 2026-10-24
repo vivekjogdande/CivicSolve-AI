@@ -1,4 +1,9 @@
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Robust dotenv resolution: load backend/.env relative to config directory, falling back to process.cwd() .env
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 
 const num = (v, d) => {
   const n = Number(v);
@@ -31,6 +36,16 @@ function assertEnv() {
   if (!env.jwtSecret || env.jwtSecret.length < 16 || env.jwtSecret.startsWith('replace_with')) {
     throw new Error('JWT_SECRET is missing or too weak. Set a random value of 32+ characters in backend/.env');
   }
+
+  // Safe configuration status diagnostics (never log passwords, hashes, or secret values)
+  if (!env.adminEmail || !env.adminPassword) {
+    console.warn('[config] ADMIN_EMAIL or ADMIN_PASSWORD is not set in environment variables. Authority administrator provisioning via environment variables will be unavailable.');
+  } else if (env.adminPassword.length < 8) {
+    console.warn('[config] ADMIN_PASSWORD configured in environment is shorter than minimum required length (8 characters).');
+  } else {
+    console.log('[config] Administrator credentials configured in environment variables.');
+  }
 }
 
 module.exports = { env, assertEnv };
+

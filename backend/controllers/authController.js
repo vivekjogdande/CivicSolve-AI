@@ -5,6 +5,7 @@ const { ROLES, AUTHORITY_ROLES } = require('../utils/constants');
 const { signToken } = require('../middleware/auth');
 const { asyncHandler, unauthorized, badRequest, conflict, serviceUnavailable } = require('../utils/errors');
 const { logEvent } = require('../services/auditService');
+const { env } = require('../config/env');
 
 // Compared against when the email is unknown, so response time does not reveal which emails exist.
 const DUMMY_HASH = bcrypt.hashSync('civicsolve-dummy-password', 12);
@@ -45,8 +46,21 @@ const loginFor = (allowedRoles, portal) =>
     const ok = await bcrypt.compare(password, user ? user.passwordHash : DUMMY_HASH);
 
     if (!user) {
-      // Diagnostic log without revealing sensitive details (email/password/hash are omitted)
-      console.warn(`[auth] ${portal} login failed: reason=ACCOUNT_NOT_FOUND portal=${portal}`);
+      // Diagnostic log without revealing sensitive details (email/password/hash/token are never logged)
+      let authorityAccountsExist;
+      let matchesAdminEnv;
+      if (portal === 'authority') {
+        try {
+          authorityAccountsExist = (await User.exists({ role: { $in: allowedRoles } })) !== null;
+        } catch {
+          authorityAccountsExist = 'unknown';
+        }
+        matchesAdminEnv = Boolean(env.adminEmail) && email === env.adminEmail.toLowerCase();
+      }
+      console.warn(
+        `[auth] ${portal} login failed: reason=ACCOUNT_NOT_FOUND portal=${portal}` +
+          (portal === 'authority' ? ` authorityAccountsExist=${authorityAccountsExist} matchesAdminEnv=${matchesAdminEnv}` : '')
+      );
       throw unauthorized('Incorrect email or password');
     }
 

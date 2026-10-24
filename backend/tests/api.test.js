@@ -174,5 +174,52 @@ describe('API guards (no database needed)', () => {
       expect(res.headers['access-control-allow-origin']).toBeUndefined();
     });
   });
+
+  describe('Configuration and safe authentication diagnostics', () => {
+    const { assertEnv, env } = require('../config/env');
+
+    test('assertEnv emits warning if ADMIN_EMAIL or ADMIN_PASSWORD is missing', () => {
+      const origNodeEnv = env.nodeEnv;
+      const origEmail = env.adminEmail;
+      const origPass = env.adminPassword;
+      const origSecret = env.jwtSecret;
+
+      env.nodeEnv = 'production';
+      env.jwtSecret = 'valid-long-secret-for-testing-purposes-123';
+      env.adminEmail = '';
+      env.adminPassword = '';
+
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      assertEnv();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[config] ADMIN_EMAIL or ADMIN_PASSWORD is not set'));
+
+      // Test short password
+      env.adminEmail = 'admin@civicsolve.gov';
+      env.adminPassword = 'short';
+      assertEnv();
+      expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[config] ADMIN_PASSWORD configured in environment is shorter'));
+
+      // Test valid config
+      env.adminPassword = 'ValidPassword123';
+      assertEnv();
+      expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('[config] Administrator credentials configured in environment variables.'));
+
+      warnSpy.mockRestore();
+      logSpy.mockRestore();
+      env.nodeEnv = origNodeEnv;
+      env.adminEmail = origEmail;
+      env.adminPassword = origPass;
+      env.jwtSecret = origSecret;
+    });
+
+    test('authority login rejects invalid credentials format before DB call', async () => {
+      const res = await request(app).post('/api/auth/authority/login').send({ email: 'not-an-email', password: '' });
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+  });
 });
+
 
